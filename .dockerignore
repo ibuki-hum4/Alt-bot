@@ -1,0 +1,21 @@
+# VCS
+.git
+.gitignore
+
+# Local env / editor
+.env
+.vscode/
+.idea/
+
+# Local binaries and artifacts
+bot.exe
+*.exe
+*.out
+*.log
+coverage*
+
+# Tests and docs not needed for runtime image build
+**/*_test.go
+
+# Compose and local orchestration files
+docker_compose.yaml

@@ -50,6 +50,17 @@ func Definitions() []discord.ApplicationCommandCreate {
 			},
 		},
 		discord.SlashCommandCreate{
+			Name:        "casino",
+			Description: "カジノゲームを実行",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionSubCommand{Name: "blackjack", Description: "ブラックジャック"},
+				discord.ApplicationCommandOptionSubCommand{Name: "chinchiro", Description: "チンチロ"},
+				discord.ApplicationCommandOptionSubCommand{Name: "roulette", Description: "ルーレット"},
+				discord.ApplicationCommandOptionSubCommand{Name: "slot", Description: "スロット"},
+				discord.ApplicationCommandOptionSubCommand{Name: "poker", Description: "ポーカー"},
+			},
+		},
+		discord.SlashCommandCreate{
 			Name:                     "commands",
 			Description:              "Botコマンド管理",
 			DefaultMemberPermissions: disgojson.NewNullablePtr(discord.PermissionManageGuild),

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	rootcommands "alt-bot/internal/bot/commands"
+	cmdcasino "alt-bot/internal/bot/commands/casino"
 	cmdcrypto "alt-bot/internal/bot/commands/crypto"
 	cmdmod "alt-bot/internal/bot/commands/mod"
 	cmdutil "alt-bot/internal/bot/commands/util"
@@ -377,6 +378,8 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 		cmdutil.HandleWorkSlash(h.logger, event)
 	case "crypto":
 		cmdcrypto.HandleCryptoSlash(h.logger, h.economy, event)
+	case "casino":
+		cmdcasino.HandleCasino(event)
 	case "commands":
 		cmdutil.HandleCommands(h.logger, event, h.ownerIDs)
 	case "news":

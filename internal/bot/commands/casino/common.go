@@ -11,14 +11,19 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/snowflake/v2"
 )
 
-func handleSlot(event *events.ApplicationCommandInteractionCreate, guildID snowflake.ID, economy *service.EconomyService) {
+func runCasinoWeighted(
+	event *events.ApplicationCommandInteractionCreate,
+	title string,
+	description string,
+	guildIDText string,
+	runner func(ctx context.Context, discordID string, bet int64) (service.CasinoPlayResult, error),
+) {
 	bet := int64(event.SlashCommandInteractionData().Int("amount"))
 	if bet <= 0 {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("amount は 1 以上で指定してください。例: /casino slot amount:100").
+			SetContent("amount は 1 以上で指定してください。例: /casino <game> amount:100").
 			SetEphemeral(true).
 			Build())
 		return
@@ -27,7 +32,7 @@ func handleSlot(event *events.ApplicationCommandInteractionCreate, guildID snowf
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	res, err := economy.PlaySlot(ctx, event.User().ID.String(), bet)
+	res, err := runner(ctx, event.User().ID.String(), bet)
 	if err != nil {
 		var insufficient *service.InsufficientYenError
 		if errors.As(err, &insufficient) {
@@ -38,37 +43,34 @@ func handleSlot(event *events.ApplicationCommandInteractionCreate, guildID snowf
 			return
 		}
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("slot の実行中にエラーが発生しました。少し待って再試行してください。").
+			SetContent("カジノ実行中にエラーが発生しました。少し待って再試行してください。").
 			SetEphemeral(true).
 			Build())
 		return
 	}
 
-	title := "Slot 結果"
+	resultTitle := title + " 結果"
 	color := 0x95A5A6
 	if res.NetYen > 0 {
-		title = "Slot 勝利"
+		resultTitle = title + " 勝利"
 		color = 0x2ECC71
 	} else if res.NetYen < 0 {
-		title = "Slot 残念"
+		resultTitle = title + " 残念"
 		color = 0xE74C3C
 	}
 
-	netText := fmt.Sprintf("%+d %s", res.NetYen, service.CurrencyYenUnit)
-	reels := strings.Join(res.Symbols, " | ")
-
 	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
-			SetTitle(title).
-			SetDescription("期待値ベースRTPモデルで抽選しています。長期RTP目標: 95.9% ").
+			SetTitle(resultTitle).
+			SetDescription(description).
 			SetColor(color).
-			AddField("Reel", reels, false).
+			AddField("Result", strings.Join(res.Symbols, " | "), false).
 			AddField("倍率", fmt.Sprintf("%.2fx", res.Multiplier), true).
 			AddField("Bet", fmt.Sprintf("%d %s", res.BetYen, service.CurrencyYenUnit), true).
 			AddField("払戻", fmt.Sprintf("%d %s", res.PayoutYen, service.CurrencyYenUnit), true).
-			AddField("収支", netText, true).
+			AddField("収支", fmt.Sprintf("%+d %s", res.NetYen, service.CurrencyYenUnit), true).
 			AddField("残りYen", fmt.Sprintf("%d %s", res.YenBalance, service.CurrencyYenUnit), true).
-			AddField("Guild", guildID.String(), true).
+			AddField("Guild", guildIDText, true).
 			SetTimestamp(time.Now()).
 			Build()).
 		SetEphemeral(true).

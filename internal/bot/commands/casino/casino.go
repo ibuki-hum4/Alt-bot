@@ -1,12 +1,14 @@
 package casino
 
 import (
+	"alt-bot/internal/service"
+
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
 )
 
-func HandleCasino(event *events.ApplicationCommandInteractionCreate) {
+func HandleCasino(economy *service.EconomyService, event *events.ApplicationCommandInteractionCreate) {
 	if event.GuildID() == nil {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("このコマンドはサーバー内でのみ利用できます。").
@@ -28,15 +30,15 @@ func HandleCasino(event *events.ApplicationCommandInteractionCreate) {
 
 	switch *data.SubCommandName {
 	case "blackjack":
-		handleBlackjack(event, guildID)
+		handleBlackjack(event, guildID, economy)
 	case "chinchiro":
-		handleChinchiro(event, guildID)
+		handleChinchiro(event, guildID, economy)
 	case "roulette":
-		handleRoulette(event, guildID)
+		handleRoulette(event, guildID, economy)
 	case "slot":
-		handleSlot(event, guildID)
+		handleSlot(event, guildID, economy)
 	case "poker":
-		handlePoker(event, guildID)
+		handlePoker(event, guildID, economy)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のサブコマンドです。").

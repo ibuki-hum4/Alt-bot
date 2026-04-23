@@ -53,11 +53,48 @@ func Definitions() []discord.ApplicationCommandCreate {
 			Name:        "casino",
 			Description: "カジノゲームを実行",
 			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionSubCommand{Name: "blackjack", Description: "ブラックジャック"},
-				discord.ApplicationCommandOptionSubCommand{Name: "chinchiro", Description: "チンチロ"},
-				discord.ApplicationCommandOptionSubCommand{Name: "roulette", Description: "ルーレット"},
-				discord.ApplicationCommandOptionSubCommand{Name: "slot", Description: "スロット"},
-				discord.ApplicationCommandOptionSubCommand{Name: "poker", Description: "ポーカー"},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "blackjack",
+					Description: "ブラックジャック",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionInt{Name: "amount", Description: "賭けるYen", Required: true, MinValue: intPointer(1)},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "chinchiro",
+					Description: "チンチロ",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionInt{Name: "amount", Description: "賭けるYen", Required: true, MinValue: intPointer(1)},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "roulette",
+					Description: "ルーレット",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionInt{Name: "amount", Description: "賭けるYen", Required: true, MinValue: intPointer(1)},
+						discord.ApplicationCommandOptionString{Name: "bet_type", Description: "red|black|odd|even|single", Required: true},
+						discord.ApplicationCommandOptionInt{Name: "number", Description: "single時の番号(0-36)", Required: false, MinValue: intPointer(0), MaxValue: intPointer(36)},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "slot",
+					Description: "スロット(期待値ベース)",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionInt{
+							Name:        "amount",
+							Description: "賭けるYen",
+							Required:    true,
+							MinValue:    intPointer(1),
+						},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "poker",
+					Description: "ポーカー",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionInt{Name: "amount", Description: "賭けるYen", Required: true, MinValue: intPointer(1)},
+					},
+				},
 			},
 		},
 		discord.SlashCommandCreate{

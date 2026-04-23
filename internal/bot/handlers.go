@@ -379,7 +379,7 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 	case "crypto":
 		cmdcrypto.HandleCryptoSlash(h.logger, h.economy, event)
 	case "casino":
-		cmdcasino.HandleCasino(event)
+		cmdcasino.HandleCasino(h.economy, event)
 	case "commands":
 		cmdutil.HandleCommands(h.logger, event, h.ownerIDs)
 	case "news":

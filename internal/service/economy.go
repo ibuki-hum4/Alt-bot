@@ -120,6 +120,12 @@ type EconomyService struct {
 	passiveTickMin       float64
 	passiveTickMax       float64
 	passiveMeanReversion float64
+
+	casinoRTPBlackjack float64
+	casinoRTPChinchiro float64
+	casinoRTPRoulette  float64
+	casinoRTPSlot      float64
+	casinoRTPPoker     float64
 }
 
 const serviceTimeout = 5 * time.Second
@@ -172,6 +178,11 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 		passiveMax = 1.004
 	}
 	meanReversion := clampFloat64(cfg.MarketMeanReversion, 0.18, 0.0, 1.0)
+	casinoRTPBlackjack := clampFloat64(cfg.CasinoRTPBlackjack, 0.959, 0.5, 1.1)
+	casinoRTPChinchiro := clampFloat64(cfg.CasinoRTPChinchiro, 0.959, 0.5, 1.1)
+	casinoRTPRoulette := clampFloat64(cfg.CasinoRTPRoulette, 0.959, 0.5, 1.1)
+	casinoRTPSlot := clampFloat64(cfg.CasinoRTPSlot, 0.959, 0.5, 1.1)
+	casinoRTPPoker := clampFloat64(cfg.CasinoRTPPoker, 0.959, 0.5, 1.1)
 
 	svc := &EconomyService{
 		client: client,
@@ -203,6 +214,11 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 		passiveTickMin:       passiveMin,
 		passiveTickMax:       passiveMax,
 		passiveMeanReversion: meanReversion,
+		casinoRTPBlackjack:   casinoRTPBlackjack,
+		casinoRTPChinchiro:   casinoRTPChinchiro,
+		casinoRTPRoulette:    casinoRTPRoulette,
+		casinoRTPSlot:        casinoRTPSlot,
+		casinoRTPPoker:       casinoRTPPoker,
 	}
 
 	marketCtx, marketCancel := context.WithTimeout(context.Background(), serviceTimeout)

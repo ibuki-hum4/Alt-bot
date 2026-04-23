@@ -27,6 +27,12 @@ type Config struct {
 	MaxComponentPerWindow    int `mapstructure:"max_component_per_window"`
 	ChartMaxConcurrent       int `mapstructure:"chart_max_concurrent"`
 
+	CasinoRTPBlackjack float64 `mapstructure:"casino_rtp_blackjack"`
+	CasinoRTPChinchiro float64 `mapstructure:"casino_rtp_chinchiro"`
+	CasinoRTPRoulette  float64 `mapstructure:"casino_rtp_roulette"`
+	CasinoRTPSlot      float64 `mapstructure:"casino_rtp_slot"`
+	CasinoRTPPoker     float64 `mapstructure:"casino_rtp_poker"`
+
 	OwnerIDs []string
 }
 
@@ -87,6 +93,21 @@ func Load() (Config, error) {
 	if err := v.BindEnv("chart_max_concurrent"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env chart_max_concurrent: %w", err)
 	}
+	if err := v.BindEnv("casino_rtp_blackjack"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env casino_rtp_blackjack: %w", err)
+	}
+	if err := v.BindEnv("casino_rtp_chinchiro"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env casino_rtp_chinchiro: %w", err)
+	}
+	if err := v.BindEnv("casino_rtp_roulette"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env casino_rtp_roulette: %w", err)
+	}
+	if err := v.BindEnv("casino_rtp_slot"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env casino_rtp_slot: %w", err)
+	}
+	if err := v.BindEnv("casino_rtp_poker"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env casino_rtp_poker: %w", err)
+	}
 
 	v.SetDefault("log_level", "info")
 	v.SetDefault("time_zone", "Asia/Tokyo")
@@ -101,6 +122,11 @@ func Load() (Config, error) {
 	v.SetDefault("component_window_seconds", 4)
 	v.SetDefault("max_component_per_window", 12)
 	v.SetDefault("chart_max_concurrent", 2)
+	v.SetDefault("casino_rtp_blackjack", 0.959)
+	v.SetDefault("casino_rtp_chinchiro", 0.959)
+	v.SetDefault("casino_rtp_roulette", 0.959)
+	v.SetDefault("casino_rtp_slot", 0.959)
+	v.SetDefault("casino_rtp_poker", 0.959)
 
 	if err := v.ReadInConfig(); err != nil {
 		_, _ = err.(viper.ConfigFileNotFoundError)

@@ -16,6 +16,18 @@ powershell -NoProfile -File .\compose-fast.ps1 -Action build
 powershell -NoProfile -File .\compose-fast.ps1 -Action up
 ```
 
+強制再作成して起動:
+
+```powershell
+powershell -NoProfile -File .\compose-fast.ps1 -Action up -Recreate
+```
+
+DB だけ起動 (ホストで bot を動かす用):
+
+```powershell
+powershell -NoProfile -File .\compose-fast.ps1 -Action db
+```
+
 キャッシュ無効でフル再ビルド:
 
 ```powershell
@@ -27,15 +39,14 @@ powershell -NoProfile -File .\compose-fast.ps1 -Action build -NoCache
 - この環境では `pwsh` コマンドが見つからないことがある。`powershell` を使う。
 - `-File compose-fast.ps1` で失敗したら `-File .\\compose-fast.ps1` のように相対パスを付ける。
 - `-NoCache:$false` は不要。`-NoCache` は付けるか付けないかで使う。
-- ビルドの主ボトルネックは Go コンパイル (`RUN go build`)。コンテキスト転送量は既に小さい。
+- ビルドの主ボトルネックは Go コンパイル。Dockerfile のキャッシュ最適化で差分ビルドを速くする。
 
 ## 反映済みの高速化
 
 - `.dockerignore` 追加済み: ローカル成果物を除外
 - Dockerfile 改善済み:
-  - `COPY . .` を廃止し、必要ディレクトリのみ COPY
-  - `go build -buildvcs=false` を適用
-- 補助スクリプト追加済み: `scripts/compose-fast.ps1`
+	- `go mod download` を別レイヤー化
+	- Go ソースのディレクトリのみ COPY
 
 ## 今回の実測
 
@@ -44,6 +55,5 @@ powershell -NoProfile -File .\compose-fast.ps1 -Action build -NoCache
 
 ## さらに速くしたい場合
 
-1. 開発時は DB だけコンテナ起動し、bot はホストで `go run` 実行
-2. 依存更新がないときは `-NoCache` を使わない
-3. 長時間ビルド時は差分が少ないうちにこまめにビルドしてキャッシュを維持
+1. 依存更新がないときは `-NoCache` を使わない
+2. 長時間ビルド時は差分が少ないうちにこまめにビルドしてキャッシュを維持

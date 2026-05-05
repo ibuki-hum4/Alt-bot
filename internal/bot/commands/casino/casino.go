@@ -22,7 +22,7 @@ func HandleCasino(economy *service.EconomyService, event *events.ApplicationComm
 	data := event.SlashCommandInteractionData()
 	if data.SubCommandName == nil {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("/casino blackjack|chinchiro|roulette|slot|poker を指定してください。").
+			SetContent("/casino blackjack|chinchiro|mines を指定してください。").
 			SetEphemeral(true).
 			Build())
 		return
@@ -33,12 +33,8 @@ func HandleCasino(economy *service.EconomyService, event *events.ApplicationComm
 		handleBlackjack(event, guildID, economy)
 	case "chinchiro":
 		handleChinchiro(event, guildID, economy)
-	case "roulette":
-		handleRoulette(event, guildID, economy)
-	case "slot":
-		handleSlot(event, guildID, economy)
-	case "poker":
-		handlePoker(event, guildID, economy)
+	case "mines":
+		handleMines(event, guildID, economy)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のサブコマンドです。").

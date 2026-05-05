@@ -107,6 +107,9 @@ type EconomyService struct {
 	rand   *rand.Rand
 	news   *NewsEngine
 
+	lastNewsEventType   EventType
+	sameNewsEventStreak int
+
 	mu        sync.Mutex
 	altPrice  float64
 	impactK   float64

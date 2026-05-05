@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	baseNewsProbability        = 0.002  // 0.2%
+	baseNewsProbability        = 0.0015 // 0.15%
 	ceilingStepProbability     = 0.0005 // 0.05% / miss
 	ceilingMaxBonusProbability = 0.02   // +2.0% max
 )
@@ -53,6 +53,37 @@ func (e *NewsEngine) RollEvent(now time.Time, pityCounter int) (EventType, float
 
 func (e *NewsEngine) pickWeightedEvent(now time.Time) EventType {
 	return e.pickWeightedEventInternal(now.In(e.location))
+}
+
+func (e *NewsEngine) pickWeightedEventExcluding(now time.Time, exclude EventType) EventType {
+	weights := make(map[EventType]float64, len(NewsStories))
+	total := 0.0
+	for eventType := range NewsStories {
+		if eventType == exclude {
+			continue
+		}
+		w := 1.0
+		if (eventType == EventMoon || eventType == EventCrash) && isWeekend(now) {
+			w *= 1.5
+		}
+		weights[eventType] = w
+		total += w
+	}
+
+	if total <= 0 {
+		return EventHoliday
+	}
+
+	roll := e.rng.Float64() * total
+	acc := 0.0
+	for eventType, w := range weights {
+		acc += w
+		if roll <= acc {
+			return eventType
+		}
+	}
+
+	return EventHoliday
 }
 
 func (e *NewsEngine) getCurrentProbability(now time.Time, pityCounter int) float64 {

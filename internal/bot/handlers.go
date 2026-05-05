@@ -423,6 +423,12 @@ func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCrea
 		cmdutil.HandleWorkComponent(h.logger, h.economy, event)
 	case strings.HasPrefix(customID, "crypto:"):
 		cmdcrypto.HandleCryptoComponent(h.logger, h.economy, event)
+	case strings.HasPrefix(customID, "casino:"):
+		cmdcasino.HandleCasinoComponent(h.economy, event)
+	case strings.HasPrefix(customID, "blackjack:"):
+		cmdcasino.HandleBlackjackComponent(h.economy, event)
+	case strings.HasPrefix(customID, "mines:"):
+		cmdcasino.HandleMinesComponent(h.economy, event)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のボタンです").

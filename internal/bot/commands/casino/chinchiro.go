@@ -8,11 +8,13 @@ import (
 )
 
 func handleChinchiro(event *events.ApplicationCommandInteractionCreate, guildID snowflake.ID, economy *service.EconomyService) {
-	runCasinoWeighted(
+	_ = economy
+	startCasinoSession(
 		event,
+		"chinchiro",
 		"Chinchiro",
-		"中分散モデル。強役は低確率で高配当。",
+		"出目を画像で表示します。",
 		guildID.String(),
-		economy.PlayChinchiro,
+		"",
 	)
 }

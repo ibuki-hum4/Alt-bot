@@ -57,6 +57,18 @@ func (s *EconomyService) PlayChinchiro(ctx context.Context, discordID string, be
 	return s.playWeightedCasino(ctx, discordID, bet, "casino_chinchiro", outcomes, s.casinoRTPChinchiro)
 }
 
+func (s *EconomyService) PlayMines(ctx context.Context, discordID string, bet int64) (CasinoPlayResult, error) {
+	outcomes := []weightedCasinoOutcome{
+		{weight: 520, multiplier: 0.0, symbols: []string{"BOOM", "Mine"}},
+		{weight: 220, multiplier: 1.2, symbols: []string{"SAFE", "x1"}},
+		{weight: 150, multiplier: 1.6, symbols: []string{"SAFE", "x2"}},
+		{weight: 80, multiplier: 2.4, symbols: []string{"SAFE", "x3"}},
+		{weight: 25, multiplier: 3.6, symbols: []string{"SAFE", "x4"}},
+		{weight: 5, multiplier: 6.0, symbols: []string{"JACKPOT", "x5"}},
+	}
+	return s.playWeightedCasino(ctx, discordID, bet, "casino_mines", outcomes, s.casinoRTPBlackjack)
+}
+
 func (s *EconomyService) PlayRoulette(ctx context.Context, discordID string, bet int64, betType RouletteBetType, number int) (CasinoPlayResult, error) {
 	if bet < SlotMinBet || bet > SlotMaxBet {
 		return CasinoPlayResult{}, fmt.Errorf("casino bet must be between %d and %d", SlotMinBet, SlotMaxBet)

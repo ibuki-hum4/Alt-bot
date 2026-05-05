@@ -1,8 +1,9 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("build", "up")]
+    [ValidateSet("build", "up", "db")]
     [string]$Action = "build",
-    [switch]$NoCache
+    [switch]$NoCache,
+    [switch]$Recreate
 )
 
 $scriptPath = Join-Path $PSScriptRoot "scripts\compose-fast.ps1"
@@ -10,8 +11,12 @@ if (-not (Test-Path $scriptPath)) {
     throw "Missing script: $scriptPath"
 }
 
+$scriptArgs = @("-Action", $Action)
 if ($NoCache) {
-    & powershell -NoProfile -File $scriptPath -Action $Action -NoCache
-} else {
-    & powershell -NoProfile -File $scriptPath -Action $Action
+    $scriptArgs += "-NoCache"
 }
+if ($Recreate) {
+    $scriptArgs += "-Recreate"
+}
+
+& powershell -NoProfile -File $scriptPath @scriptArgs

@@ -68,17 +68,8 @@ func Definitions() []discord.ApplicationCommandCreate {
 					},
 				},
 				discord.ApplicationCommandOptionSubCommand{
-					Name:        "roulette",
-					Description: "ルーレット",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionInt{Name: "amount", Description: "賭けるYen", Required: true, MinValue: intPointer(1)},
-						discord.ApplicationCommandOptionString{Name: "bet_type", Description: "red|black|odd|even|single", Required: true},
-						discord.ApplicationCommandOptionInt{Name: "number", Description: "single時の番号(0-36)", Required: false, MinValue: intPointer(0), MaxValue: intPointer(36)},
-					},
-				},
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "slot",
-					Description: "スロット(期待値ベース)",
+					Name:        "mines",
+					Description: "マインスイパー",
 					Options: []discord.ApplicationCommandOption{
 						discord.ApplicationCommandOptionInt{
 							Name:        "amount",
@@ -86,13 +77,6 @@ func Definitions() []discord.ApplicationCommandCreate {
 							Required:    true,
 							MinValue:    intPointer(1),
 						},
-					},
-				},
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "poker",
-					Description: "ポーカー",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionInt{Name: "amount", Description: "賭けるYen", Required: true, MinValue: intPointer(1)},
 					},
 				},
 			},

@@ -24,7 +24,8 @@ const (
 	feeReserveBPS = int64(2000)
 	feeRevenueBPS = int64(1000)
 
-	baseDailyIssuanceCap int64 = 20000
+	baseDailyIssuanceCap   int64 = 20000
+	maxSameNewsEventStreak       = 3
 
 	circuitCautionThreshold = 0.05
 	circuitAlertThreshold   = 0.10
@@ -421,6 +422,13 @@ func (s *EconomyService) modelPrice(base float64, eventType EventType, volume in
 		}
 	}
 	eventMul := s.eventMultiplier(eventType)
+	if eventType != "" {
+		duration := eventDurationTicks(eventType)
+		if duration > 1 {
+			// Treat configured event multiplier as total effect over the event window.
+			eventMul = math.Pow(eventMul, 1.0/float64(duration))
+		}
+	}
 	impact := s.impactMultiplier(volume, side)
 	next := base * gbm * eventMul * impact
 	if eventType == "" {
@@ -544,8 +552,10 @@ func (s *EconomyService) ProcessNewsTick(ctx context.Context, now time.Time) (Ne
 			if remaining == 0 {
 				s.logger.Info().Str("event", string(activeEvent)).Msg("EVENT_ENDED")
 				if activeEvent == EventBubble {
-					activeEvent = EventCrash
+					activeEvent = s.limitConsecutiveNewsEvent(now, EventCrash)
 					remaining = eventDurationTicks(activeEvent)
+					result.Hit = true
+					result.EventType = activeEvent
 					s.logger.Info().Str("event", string(activeEvent)).Msg("EVENT_TRIGGERED")
 				} else {
 					activeEvent = ""
@@ -555,6 +565,7 @@ func (s *EconomyService) ProcessNewsTick(ctx context.Context, now time.Time) (Ne
 			eventType, p, hit := s.news.RollEvent(now, pity)
 			result.Probability = p
 			if hit {
+				eventType = s.limitConsecutiveNewsEvent(now, eventType)
 				activeEvent = eventType
 				remaining = eventDurationTicks(eventType)
 				pity = 0
@@ -589,9 +600,6 @@ func (s *EconomyService) ProcessNewsTick(ctx context.Context, now time.Time) (Ne
 			return err
 		}
 		s.altPrice = nextPrice
-		if result.EventType != "" {
-			result.Hit = true
-		}
 		return nil
 	})
 	if err != nil {
@@ -599,6 +607,32 @@ func (s *EconomyService) ProcessNewsTick(ctx context.Context, now time.Time) (Ne
 		return NewsTickResult{}, err
 	}
 	return result, nil
+}
+
+func (s *EconomyService) limitConsecutiveNewsEvent(now time.Time, eventType EventType) EventType {
+	if eventType == "" {
+		return eventType
+	}
+
+	if eventType == s.lastNewsEventType {
+		if s.sameNewsEventStreak >= maxSameNewsEventStreak {
+			next := s.news.pickWeightedEventExcluding(now, eventType)
+			if next != "" && next != eventType {
+				s.logger.Info().Str("from", string(eventType)).Str("to", string(next)).Int("max_streak", maxSameNewsEventStreak).Msg("NEWS_EVENT_REROLLED")
+				eventType = next
+				s.lastNewsEventType = eventType
+				s.sameNewsEventStreak = 1
+				return eventType
+			}
+			s.logger.Warn().Str("event", string(eventType)).Int("streak", s.sameNewsEventStreak).Msg("NEWS_EVENT_LIMITER_FALLBACK")
+		}
+		s.sameNewsEventStreak++
+		return eventType
+	}
+
+	s.lastNewsEventType = eventType
+	s.sameNewsEventStreak = 1
+	return eventType
 }
 
 func (s *EconomyService) GetRateSnapshot(ctx context.Context) (RateSnapshot, error) {

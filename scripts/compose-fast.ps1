@@ -1,8 +1,9 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("build", "up")]
+    [ValidateSet("build", "up", "db")]
     [string]$Action = "build",
-    [switch]$NoCache
+    [switch]$NoCache,
+    [switch]$Recreate
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,10 +12,18 @@ $ErrorActionPreference = "Stop"
 $env:DOCKER_BUILDKIT = "1"
 $env:COMPOSE_DOCKER_CLI_BUILD = "1"
 
-$baseArgs = @("compose", "-f", "docker_compose.yaml")
+$baseArgs = @("compose", "--env-file", ".env", "-f", "docker_compose.yaml")
 
 if ($Action -eq "up") {
     $args = $baseArgs + @("up", "-d", "--build")
+    if ($Recreate) {
+        $args += "--force-recreate"
+    }
+} elseif ($Action -eq "db") {
+    $args = $baseArgs + @("up", "-d", "postgres")
+    if ($Recreate) {
+        $args += "--force-recreate"
+    }
 } else {
     $args = $baseArgs + @("build", "bot")
 }

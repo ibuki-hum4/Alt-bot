@@ -4,6 +4,7 @@
 
 # Local env / editor
 .env
+.env.*
 .vscode/
 .idea/
 
@@ -14,8 +15,23 @@ bot.exe
 *.log
 coverage*
 
+# Build/cache/temp
+bin/
+dist/
+tmp/
+.cache/
+
+# Build outputs
+build_output.txt
+build_results.txt
+build_error.log
+
 # Tests and docs not needed for runtime image build
 **/*_test.go
 
+# Go workspace file
+go.work
+
 # Compose and local orchestration files
 docker_compose.yaml
+docker-compose.override.yml

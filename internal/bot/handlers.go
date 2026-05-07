@@ -43,11 +43,11 @@ type userBurstCounter struct {
 }
 
 type Handlers struct {
-	economy  *service.EconomyService
+	economy    *service.EconomyService
 	rolePanels *service.RolePanelService
-	ownerIDs map[string]struct{}
-	logger   zerolog.Logger
-	cfg      config.Config
+	ownerIDs   map[string]struct{}
+	logger     zerolog.Logger
+	cfg        config.Config
 
 	newsMu       sync.RWMutex
 	newsChannels map[string]snowflake.ID
@@ -65,6 +65,8 @@ type Handlers struct {
 	componentWindowDuration time.Duration
 	maxComponentPerWindow   int
 }
+
+const economyDisabledMessage = "経済機能は現在無効化されています。"
 
 func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelService, cfg config.Config, ownerIDs []string, logger zerolog.Logger) *Handlers {
 	set := make(map[string]struct{}, len(ownerIDs))
@@ -240,6 +242,10 @@ func (h *Handlers) NewsChannelStatus(guildID snowflake.ID) (snowflake.ID, bool, 
 }
 
 func (h *Handlers) StartNewsLoop(client bot.Client) {
+	if !h.cfg.EconomyEnabled {
+		h.logger.Info().Msg("economy disabled; news loop not started")
+		return
+	}
 	h.newsMu.Lock()
 	if h.newsCancel != nil {
 		h.newsMu.Unlock()
@@ -379,18 +385,42 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 	case "help":
 		cmdutil.HandleHelp(event)
 	case "work":
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledSlash(event, " /work は利用できません。")
+			return
+		}
 		cmdutil.HandleWorkSlash(h.logger, event)
 	case "crypto":
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledSlash(event, " /crypto は利用できません。")
+			return
+		}
 		cmdcrypto.HandleCryptoSlash(h.logger, h.economy, event)
 	case "casino":
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledSlash(event, " /casino は利用できません。")
+			return
+		}
 		cmdcasino.HandleCasino(h.economy, event)
 	case "commands":
 		cmdutil.HandleCommands(h.logger, event, h.ownerIDs)
 	case "news":
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledSlash(event, " /news は利用できません。")
+			return
+		}
 		cmdutil.HandleNews(h.logger, h.economy, h.SetNewsChannel, h.DisableNewsChannel, h.NewsChannelStatus, event)
 	case "rate":
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledSlash(event, " /rate は利用できません。")
+			return
+		}
 		cmdutil.HandleRate(event, h.economy)
 	case "chart":
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledSlash(event, " /chart は利用できません。")
+			return
+		}
 		select {
 		case h.chartSem <- struct{}{}:
 			defer func() { <-h.chartSem }()
@@ -426,14 +456,34 @@ func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCrea
 	customID := event.Data.CustomID()
 	switch {
 	case strings.HasPrefix(customID, "work:"):
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledComponent(event)
+			return
+		}
 		cmdutil.HandleWorkComponent(h.logger, h.economy, event)
 	case strings.HasPrefix(customID, "crypto:"):
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledComponent(event)
+			return
+		}
 		cmdcrypto.HandleCryptoComponent(h.logger, h.economy, event)
 	case strings.HasPrefix(customID, "casino:"):
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledComponent(event)
+			return
+		}
 		cmdcasino.HandleCasinoComponent(h.economy, event)
 	case strings.HasPrefix(customID, "blackjack:"):
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledComponent(event)
+			return
+		}
 		cmdcasino.HandleBlackjackComponent(h.economy, event)
 	case strings.HasPrefix(customID, "mines:"):
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledComponent(event)
+			return
+		}
 		cmdcasino.HandleMinesComponent(h.economy, event)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -441,6 +491,20 @@ func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCrea
 			SetEphemeral(true).
 			Build())
 	}
+}
+
+func (h *Handlers) replyEconomyDisabledSlash(event *events.ApplicationCommandInteractionCreate, suffix string) {
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent(economyDisabledMessage + suffix).
+		SetEphemeral(true).
+		Build())
+}
+
+func (h *Handlers) replyEconomyDisabledComponent(event *events.ComponentInteractionCreate) {
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent(economyDisabledMessage + " 操作は行えません。").
+		SetEphemeral(true).
+		Build())
 }
 
 func (h *Handlers) OnAutocompleteInteraction(event *events.AutocompleteInteractionCreate) {

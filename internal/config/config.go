@@ -34,6 +34,7 @@ type Config struct {
 	CasinoRTPPoker     float64 `mapstructure:"casino_rtp_poker"`
 
 	RolePanelEnabled  bool            `mapstructure:"role_panel_enabled"`
+	EconomyEnabled    bool            `mapstructure:"economy_enabled"`
 	RolePanelGuildIDs []string        `mapstructure:"role_panel_guild_ids"`
 	RolePanelRoles    []RolePanelRole `mapstructure:"role_panel_roles"`
 
@@ -121,6 +122,9 @@ func Load() (Config, error) {
 	if err := v.BindEnv("role_panel_enabled"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env role_panel_enabled: %w", err)
 	}
+	if err := v.BindEnv("economy_enabled"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env economy_enabled: %w", err)
+	}
 	if err := v.BindEnv("role_panel_guild_ids"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env role_panel_guild_ids: %w", err)
 	}
@@ -147,6 +151,7 @@ func Load() (Config, error) {
 	v.SetDefault("casino_rtp_slot", 0.959)
 	v.SetDefault("casino_rtp_poker", 0.959)
 	v.SetDefault("role_panel_enabled", false)
+	v.SetDefault("economy_enabled", false)
 
 	if err := v.ReadInConfig(); err != nil {
 		_, _ = err.(viper.ConfigFileNotFoundError)

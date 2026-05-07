@@ -11,6 +11,8 @@ data:
   ALTBOT_MARKET_PASSIVE_MIN: "0.996"
   ALTBOT_MARKET_PASSIVE_MAX: "1.004"
   ALTBOT_MARKET_MEAN_REVERSION: "0.18"
+  # Economy toggle: set true to restore work/crypto/casino/news/rate/chart
+  ALTBOT_ECONOMY_ENABLED: "false"
   # Rate-limit tuning
   ALTBOT_MIN_SAME_COMMAND_INTERVAL_MS: "800"
   ALTBOT_SLASH_WINDOW_SECONDS: "5"

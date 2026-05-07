@@ -41,6 +41,12 @@ powershell -NoProfile -File .\compose-fast.ps1 -Action build -NoCache
 - `-NoCache:$false` は不要。`-NoCache` は付けるか付けないかで使う。
 - ビルドの主ボトルネックは Go コンパイル。Dockerfile のキャッシュ最適化で差分ビルドを速くする。
 
+## 経済機能の停止/復元
+
+- `ALTBOT_ECONOMY_ENABLED=false` で `work` / `crypto` / `casino` / `news` / `rate` / `chart` を停止
+- 復元するときは `ALTBOT_ECONOMY_ENABLED=true` に戻すだけでよい
+- まずは設定だけで切り替え、コードの再編集は不要にしてある
+
 ## 反映済みの高速化
 
 - `.dockerignore` 追加済み: ローカル成果物を除外

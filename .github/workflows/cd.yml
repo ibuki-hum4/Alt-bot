@@ -1,0 +1,124 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  test-and-lint:
+    name: Test and Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+          only-new-issues: false
+
+      - name: Run unit tests
+        run: go test -v ./...
+
+  build-and-push:
+    name: Build and Push ${{ matrix.image.name }}
+    runs-on: ubuntu-latest
+    needs: test-and-lint
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: frontend
+            context: .
+            suffix: -frontend
+          - name: go-api
+            context: ./go-api
+            suffix: -go-api
+          - name: og-renderer
+            context: ./og-renderer
+            suffix: -og-renderer
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Normalize release tag
+        id: normalize
+        shell: bash
+        run: |
+          version_with_v="${GITHUB_REF_NAME}"
+          version_without_v="${version_with_v#v}"
+
+          echo "version_with_v=${version_with_v}" >> "$GITHUB_OUTPUT"
+          echo "version_without_v=${version_without_v}" >> "$GITHUB_OUTPUT"
+
+      - name: Normalize repository name
+        id: repo
+        shell: bash
+        run: |
+          repository_name="${{ github.event.repository.name }}"
+          repository_name_lower="$(printf '%s' "$repository_name" | tr '[:upper:]' '[:lower:]')"
+
+          echo "repository_name_lower=${repository_name_lower}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.repo.outputs.repository_name_lower }}${{ matrix.image.suffix }}
+          tags: |
+            type=raw,value=${{ steps.normalize.outputs.version_with_v }}
+            type=raw,value=${{ steps.normalize.outputs.version_without_v }}
+            type=raw,value=latest
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.context }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image
+        env:
+          COSIGN_EXPERIMENTAL: 'false'
+          IMAGE_NAME: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.repo.outputs.repository_name_lower }}${{ matrix.image.suffix }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        shell: bash
+        run: |
+          cosign sign --yes "${IMAGE_NAME}@${IMAGE_DIGEST}"

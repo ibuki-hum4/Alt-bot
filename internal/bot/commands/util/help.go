@@ -15,6 +15,7 @@ func HandleHelp(event *events.ApplicationCommandInteractionCreate) {
 		AddField("Casino", "/casino blackjack|chinchiro|mines amount", false).
 		AddField("Moderation", "/mod kick|ban|mute user ...", false).
 		AddField("Admin", "/commands reload (Bot Owner only)", false).
+		AddField("Role Panel", "/rp create, /rp add", false).
 		AddField("Notes", "mod と commands は権限設定により表示/実行制限があります。", false).
 		Build()
 

@@ -118,6 +118,60 @@ func Definitions() []discord.ApplicationCommandCreate {
 			},
 		},
 		discord.SlashCommandCreate{
+			Name:                     "rp",
+			Description:              "ロールパネル管理",
+			DefaultMemberPermissions: disgojson.NewNullablePtr(discord.PermissionManageGuild),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "create",
+					Description: "ロールパネルを作成",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionChannel{
+							Name:        "channel",
+							Description: "作成先チャンネル(省略時は現在のチャンネル)",
+							Required:    false,
+						},
+						discord.ApplicationCommandOptionString{
+							Name:        "roles",
+							Description: "初期ロール(例: 123,456,789)",
+							Required:    false,
+						},
+						discord.ApplicationCommandOptionString{
+							Name:        "title",
+							Description: "埋め込みタイトル(省略時は既定)",
+							Required:    false,
+						},
+						discord.ApplicationCommandOptionString{
+							Name:        "description",
+							Description: "埋め込み説明(省略時は既定)",
+							Required:    false,
+						},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "add",
+					Description: "ロールパネルにロールを追加",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionChannel{
+							Name:        "channel",
+							Description: "ロールパネルのチャンネル",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionString{
+							Name:        "message_id",
+							Description: "ロールパネルのメッセージID",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionString{
+							Name:        "roles",
+							Description: "追加ロール(例: 123,456,789)",
+							Required:    true,
+						},
+					},
+				},
+			},
+		},
+		discord.SlashCommandCreate{
 			Name:                     "mod",
 			Description:              "モデレーションユーティリティ",
 			DefaultMemberPermissions: disgojson.NewNullablePtr(discord.PermissionManageGuild),

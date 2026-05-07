@@ -46,6 +46,7 @@ type Handlers struct {
 	economy  *service.EconomyService
 	ownerIDs map[string]struct{}
 	logger   zerolog.Logger
+	cfg      config.Config
 
 	newsMu       sync.RWMutex
 	newsChannels map[string]snowflake.ID
@@ -103,6 +104,7 @@ func NewHandlers(economy *service.EconomyService, cfg config.Config, ownerIDs []
 		economy:                 economy,
 		ownerIDs:                set,
 		logger:                  logger,
+		cfg:                     cfg,
 		newsChannels:            make(map[string]snowflake.ID),
 		lastCommandAt:           make(map[string]time.Time),
 		slashBurstByUser:        make(map[string]userBurstCounter),
@@ -398,6 +400,8 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 			return
 		}
 		cmdutil.HandleChart(h.logger, h.economy, event)
+	case "rp":
+		cmdutil.HandleRolePanel(h.logger, h.cfg, event)
 	case "mod":
 		cmdmod.HandleModeration(event)
 	default:
@@ -429,6 +433,8 @@ func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCrea
 		cmdcasino.HandleBlackjackComponent(h.economy, event)
 	case strings.HasPrefix(customID, "mines:"):
 		cmdcasino.HandleMinesComponent(h.economy, event)
+	case strings.HasPrefix(customID, "rolepanel:"):
+		cmdutil.HandleRolePanelComponent(h.logger, h.cfg, event)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のボタンです").

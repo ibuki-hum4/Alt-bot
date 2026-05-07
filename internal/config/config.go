@@ -33,7 +33,17 @@ type Config struct {
 	CasinoRTPSlot      float64 `mapstructure:"casino_rtp_slot"`
 	CasinoRTPPoker     float64 `mapstructure:"casino_rtp_poker"`
 
+	RolePanelEnabled  bool            `mapstructure:"role_panel_enabled"`
+	RolePanelGuildIDs []string        `mapstructure:"role_panel_guild_ids"`
+	RolePanelRoles    []RolePanelRole `mapstructure:"role_panel_roles"`
+
 	OwnerIDs []string
+}
+
+type RolePanelRole struct {
+	RoleID      string `mapstructure:"role_id"`
+	Label       string `mapstructure:"label"`
+	Description string `mapstructure:"description"`
 }
 
 func Load() (Config, error) {
@@ -108,6 +118,15 @@ func Load() (Config, error) {
 	if err := v.BindEnv("casino_rtp_poker"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env casino_rtp_poker: %w", err)
 	}
+	if err := v.BindEnv("role_panel_enabled"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env role_panel_enabled: %w", err)
+	}
+	if err := v.BindEnv("role_panel_guild_ids"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env role_panel_guild_ids: %w", err)
+	}
+	if err := v.BindEnv("role_panel_roles"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env role_panel_roles: %w", err)
+	}
 
 	v.SetDefault("log_level", "info")
 	v.SetDefault("time_zone", "Asia/Tokyo")
@@ -127,6 +146,7 @@ func Load() (Config, error) {
 	v.SetDefault("casino_rtp_roulette", 0.959)
 	v.SetDefault("casino_rtp_slot", 0.959)
 	v.SetDefault("casino_rtp_poker", 0.959)
+	v.SetDefault("role_panel_enabled", true)
 
 	if err := v.ReadInConfig(); err != nil {
 		_, _ = err.(viper.ConfigFileNotFoundError)
@@ -150,10 +170,62 @@ func Load() (Config, error) {
 		}
 	}
 
+	rawRolePanelGuildIDs := v.GetString("role_panel_guild_ids")
+	if rawRolePanelGuildIDs != "" {
+		cfg.RolePanelGuildIDs = splitCommaValues(rawRolePanelGuildIDs)
+	}
+
+	rawRolePanelRoles := v.GetString("role_panel_roles")
+	if rawRolePanelRoles != "" {
+		roles, err := parseRolePanelRoles(rawRolePanelRoles)
+		if err != nil {
+			return Config{}, fmt.Errorf("failed to parse role_panel_roles: %w", err)
+		}
+		cfg.RolePanelRoles = roles
+	}
+
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if err := validate.Struct(cfg); err != nil {
 		return Config{}, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return cfg, nil
+}
+
+func splitCommaValues(raw string) []string {
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
+	for _, p := range parts {
+		value := strings.TrimSpace(p)
+		if value == "" {
+			continue
+		}
+		values = append(values, value)
+	}
+	return values
+}
+
+func parseRolePanelRoles(raw string) ([]RolePanelRole, error) {
+	items := strings.Split(raw, ";")
+	roles := make([]RolePanelRole, 0, len(items))
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		parts := strings.Split(item, "|")
+		roleID := strings.TrimSpace(parts[0])
+		if roleID == "" {
+			return nil, fmt.Errorf("role_id is empty in %q", item)
+		}
+		role := RolePanelRole{RoleID: roleID}
+		if len(parts) > 1 {
+			role.Label = strings.TrimSpace(parts[1])
+		}
+		if len(parts) > 2 {
+			role.Description = strings.TrimSpace(parts[2])
+		}
+		roles = append(roles, role)
+	}
+	return roles, nil
 }

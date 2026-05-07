@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alt-bot
+  namespace: alt-bot
+  labels:
+    app: alt-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alt-bot
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: alt-bot
+    spec:
+      serviceAccountName: alt-bot
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:18-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -U altbot -d altbot; do
+                echo "waiting for postgres..."; sleep 2
+              done
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: alt-bot-secret
+                  key: POSTGRES_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: alt-bot
+          image: docker.io/kemar1/alt-bot
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: alt-bot-config
+            - secretRef:
+                name: alt-bot-secret
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: alt-bot-pdb
+  namespace: alt-bot
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: alt-bot

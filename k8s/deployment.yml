@@ -4,20 +4,20 @@ metadata:
   name: ibuki-alt-bot
   namespace: ibuki-alt-bot
   labels:
-    app: alt-bot
+    app: ibuki-alt-bot
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alt-bot
+      app: ibuki-alt-bot
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: alt-bot
+        app: ibuki-alt-bot
     spec:
-      serviceAccountName: alt-bot
+      serviceAccountName: ibuki-alt-bot
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -36,21 +36,21 @@ spec:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: alt-bot-secret
+                  name: ibuki-alt-bot-secret
                   key: POSTGRES_PASSWORD
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
       containers:
-        - name: alt-bot
+        - name: ibuki-alt-bot
           image: docker.io/kemar1/alt-bot
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
-                name: alt-bot-config
+                name: ibuki-alt-bot-config
             - secretRef:
-                name: alt-bot-secret
+                name: ibuki-alt-bot-secret
           resources:
             requests:
               cpu: 500m

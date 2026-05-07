@@ -43,11 +43,11 @@ type userBurstCounter struct {
 }
 
 type Handlers struct {
-	economy  *service.EconomyService
+	economy    *service.EconomyService
 	rolePanels *service.RolePanelService
-	ownerIDs map[string]struct{}
-	logger   zerolog.Logger
-	cfg      config.Config
+	ownerIDs   map[string]struct{}
+	logger     zerolog.Logger
+	cfg        config.Config
 
 	newsMu       sync.RWMutex
 	newsChannels map[string]snowflake.ID
@@ -103,7 +103,7 @@ func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelS
 
 	return &Handlers{
 		economy:                 economy,
-		rolePanels:             rolePanels,
+		rolePanels:              rolePanels,
 		ownerIDs:                set,
 		logger:                  logger,
 		cfg:                     cfg,

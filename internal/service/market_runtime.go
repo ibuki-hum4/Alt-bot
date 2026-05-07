@@ -25,7 +25,7 @@ const (
 	feeRevenueBPS = int64(1000)
 
 	baseDailyIssuanceCap   int64 = 20000
-	maxSameNewsEventStreak int = 3
+	maxSameNewsEventStreak int   = 3
 
 	circuitCautionThreshold = 0.05
 	circuitAlertThreshold   = 0.10

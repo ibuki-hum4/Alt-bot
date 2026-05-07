@@ -62,3 +62,6 @@ config.json
 
 # Local overrides
 docker-compose.override.yml
+
+# k8s etc...
+secret.yml

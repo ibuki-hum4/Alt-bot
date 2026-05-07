@@ -2,14 +2,14 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - namespace.yaml
-  - serviceaccount.yaml
-  - secret.yaml
-  - configmap.yaml
-  - postgres-service.yaml
-  - postgres-statefulset.yaml
-  - deployment.yaml
-  - pdb.yaml
+  - namespace.yml
+  - serviceaccount.yml
+  - sealed-secret.yml
+  - configmap.yml
+  - psql-service.yml
+  - psql-statefulset.yml
+  - deployment.yml
+  - pdb.yml
 
 images:
   - name: docker.io/kemar1/alt-bot

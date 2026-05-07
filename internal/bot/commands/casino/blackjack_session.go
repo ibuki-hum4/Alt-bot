@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	blackjackDecks          = 6
-	blackjackInitialCards   = 2
-	blackjackAceValue       = 11
-	blackjackTimeout        = casinoInteractionTimeout
+	blackjackDecks           = 6
+	blackjackInitialCards    = 2
+	blackjackAceValue        = 11
+	blackjackTimeout         = casinoInteractionTimeout
 	blackjackImageFileName   = "blackjack-state.png"
 	blackjackImageAttachment = "attachment://blackjack-state.png"
-	blackjackMaxSplitHands  = 2
+	blackjackMaxSplitHands   = 2
 	blackjackDealerStandSoft = 17
 )
 
@@ -45,20 +45,20 @@ type blackjackHand struct {
 }
 
 type blackjackSession struct {
-	ID             string
-	UserID         string
-	GuildID        string
-	BaseBet        int64
-	Expires        int64
-	Deck           []blackjackCard
-	Dealer         []blackjackCard
-	Hands          []blackjackHand
-	ActiveHand     int
-	SplitUsed      bool
-	Closed         bool
-	BalanceAfter   int64
+	ID              string
+	UserID          string
+	GuildID         string
+	BaseBet         int64
+	Expires         int64
+	Deck            []blackjackCard
+	Dealer          []blackjackCard
+	Hands           []blackjackHand
+	ActiveHand      int
+	SplitUsed       bool
+	Closed          bool
+	BalanceAfter    int64
 	DealersRevealed bool
-	FinalReason    string
+	FinalReason     string
 }
 
 type blackjackRenderHand struct {
@@ -649,16 +649,13 @@ func blackjackResolvePayout(session *blackjackSession) int64 {
 
 func blackjackPlayDealer(session *blackjackSession) {
 	for {
-		total, soft := blackjackHandValue(session.Dealer)
+		total, _ := blackjackHandValue(session.Dealer)
 		if total > 21 {
 			return
 		}
 		if total < blackjackDealerStandSoft {
 			blackjackDrawCard(session, &session.Dealer)
 			continue
-		}
-		if total == blackjackDealerStandSoft && soft {
-			return
 		}
 		return
 	}

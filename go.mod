@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	entgo.io/ent v0.14.5
 	github.com/disgoorg/disgo v0.18.8
-	github.com/disgoorg/json v1.1.0
+	github.com/disgoorg/json v1.2.0
 	github.com/disgoorg/snowflake/v2 v2.0.1
 	github.com/fogleman/gg v1.3.0
 	github.com/go-playground/validator/v10 v10.28.0

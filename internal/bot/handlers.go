@@ -43,11 +43,11 @@ type userBurstCounter struct {
 }
 
 type Handlers struct {
-	economy    *service.EconomyService
+	economy  *service.EconomyService
 	rolePanels *service.RolePanelService
-	ownerIDs   map[string]struct{}
-	logger     zerolog.Logger
-	cfg        config.Config
+	ownerIDs map[string]struct{}
+	logger   zerolog.Logger
+	cfg      config.Config
 
 	newsMu       sync.RWMutex
 	newsChannels map[string]snowflake.ID
@@ -402,7 +402,7 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 			return
 		}
 		cmdutil.HandleChart(h.logger, h.economy, event)
-	case "rp":
+	case "rolepanel":
 		cmdutil.HandleRolePanel(h.logger, h.cfg, h.rolePanels, event)
 	case "mod":
 		cmdmod.HandleModeration(event)
@@ -412,14 +412,6 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 			SetEphemeral(true).
 			Build())
 	}
-}
-
-func (h *Handlers) OnAutocompleteInteraction(event *events.AutocompleteInteractionCreate) {
-	data := event.Data
-	if data.CommandName != "rp" {
-		return
-	}
-	cmdutil.HandleRolePanelAutocomplete(h.logger, h.cfg, h.rolePanels, event)
 }
 
 func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCreate) {
@@ -443,13 +435,18 @@ func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCrea
 		cmdcasino.HandleBlackjackComponent(h.economy, event)
 	case strings.HasPrefix(customID, "mines:"):
 		cmdcasino.HandleMinesComponent(h.economy, event)
-	case strings.HasPrefix(customID, "rolepanel:"):
-		cmdutil.HandleRolePanelComponent(h.logger, h.cfg, event)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のボタンです").
 			SetEphemeral(true).
 			Build())
+	}
+}
+
+func (h *Handlers) OnAutocompleteInteraction(event *events.AutocompleteInteractionCreate) {
+	data := event.Data
+	if data.CommandName == "rp" {
+		cmdutil.HandleRolePanelAutocomplete(h.logger, h.cfg, h.rolePanels, event)
 	}
 }
 

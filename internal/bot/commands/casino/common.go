@@ -73,6 +73,12 @@ func startCasinoSession(
 }
 
 func HandleCasinoComponent(economy *service.EconomyService, event *events.ComponentInteractionCreate) {
+	// 経済機能無効化: 即時応答
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent("経済機能は現在無効化されています。操作は行えません。").
+		SetEphemeral(true).
+		Build())
+	return
 	s, action, err := parseCasinoComponentID(event.Data.CustomID())
 	if err != nil {
 		return
@@ -178,10 +184,14 @@ func HandleCasinoComponent(economy *service.EconomyService, event *events.Compon
 		)).
 		Build())
 
-	switch s.Game {
-	case "blackjack", "chinchiro":
+	if s.Game == "blackjack" || s.Game == "chinchiro" {
 		if pngBytes, renderErr := renderCasinoResultPNG(s.Game, res); renderErr == nil {
 			fileName := fmt.Sprintf("%s-result.png", s.Game)
+			if s.Game == "blackjack" {
+				fileName = "blackjack-result.png"
+			} else if s.Game == "chinchiro" {
+				fileName = "chinchiro-result.png"
+			}
 			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 				SetContent(fmt.Sprintf("%s の画像結果です。", s.Title)).
 				AddFile(fileName, s.Title+" result", bytes.NewReader(pngBytes)).

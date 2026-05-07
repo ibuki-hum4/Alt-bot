@@ -8,6 +8,12 @@ import (
 )
 
 func HandleCasino(economy *service.EconomyService, event *events.ApplicationCommandInteractionCreate) {
+	// 経済機能無効化: 即時応答して何もしない
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent("経済機能は現在無効化されています。/casino は利用できません。").
+		SetEphemeral(true).
+		Build())
+	return
 	if event.GuildID() == nil {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("このコマンドはサーバー内でのみ利用できます。").

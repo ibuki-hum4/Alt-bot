@@ -65,3 +65,6 @@ docker-compose.override.yml
 
 # k8s etc...
 secret.yml
+
+# md files
+TODO.md

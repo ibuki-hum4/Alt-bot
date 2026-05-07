@@ -146,7 +146,7 @@ func Load() (Config, error) {
 	v.SetDefault("casino_rtp_roulette", 0.959)
 	v.SetDefault("casino_rtp_slot", 0.959)
 	v.SetDefault("casino_rtp_poker", 0.959)
-	v.SetDefault("role_panel_enabled", true)
+	v.SetDefault("role_panel_enabled", false)
 
 	if err := v.ReadInConfig(); err != nil {
 		_, _ = err.(viper.ConfigFileNotFoundError)

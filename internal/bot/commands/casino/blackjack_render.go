@@ -79,7 +79,9 @@ func drawBlackjackSessionFrame(dc *gg.Context, view blackjackRenderState) error 
 
 func blackjackDealerCardsForView(view blackjackRenderState) []blackjackCard {
 	cards := make([]blackjackCard, 0, len(view.Dealer))
-	cards = append(cards, view.Dealer...)
+	for _, card := range view.Dealer {
+		cards = append(cards, card)
+	}
 	return cards
 }
 
@@ -192,27 +194,27 @@ func blackjackBackAssetPath(isDealer bool) string {
 }
 
 const (
-	blackjackImageWidth          = 1672
-	blackjackImageHeight         = 941
-	blackjackCardW               = 150.0
-	blackjackCardH               = 225.0
-	blackjackCardGap             = 18.0
-	blackjackLeftMarginX         = 140.0
-	blackjackRightMarginX        = 140.0
-	blackjackDealerRowY          = 180.0
-	blackjackPlayerRowY          = 560.0
-	blackjackPlayerRowGap        = 28.0
-	blackjackTitleX              = 140.0
-	blackjackTitleY              = 96.0
-	blackjackBalanceX            = 1600.0
-	blackjackBalanceY            = 884.0
-	blackjackDealerLabelX        = 140.0
-	blackjackDealerLabelY        = 150.0
-	blackjackPlayerLabelX        = 1230.0
-	blackjackPlayerLabelY        = 520.0
+	blackjackImageWidth  = 1672
+	blackjackImageHeight = 941
+	blackjackCardW      = 150.0
+	blackjackCardH      = 225.0
+	blackjackCardGap    = 18.0
+	blackjackLeftMarginX = 140.0
+	blackjackRightMarginX = 140.0
+	blackjackDealerRowY = 180.0
+	blackjackPlayerRowY = 560.0
+	blackjackPlayerRowGap = 28.0
+	blackjackTitleX = 140.0
+	blackjackTitleY = 96.0
+	blackjackBalanceX = 1600.0
+	blackjackBalanceY = 884.0
+	blackjackDealerLabelX = 140.0
+	blackjackDealerLabelY = 150.0
+	blackjackPlayerLabelX = 1230.0
+	blackjackPlayerLabelY = 520.0
 	blackjackBackgroundAssetPath = "internal/assets/black-jack-background.png"
-	blackjackDealerAssetDir      = "internal/assets/type-A"
-	blackjackPlayerAssetDir      = "internal/assets/type-B"
+	blackjackDealerAssetDir = "internal/assets/type-A"
+	blackjackPlayerAssetDir = "internal/assets/type-B"
 )
 
 func blackjackCardRowWidth(cardCount int) float64 {

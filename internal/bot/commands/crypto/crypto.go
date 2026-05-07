@@ -23,6 +23,12 @@ const (
 )
 
 func HandleCryptoSlash(logger zerolog.Logger, economy *service.EconomyService, event *events.ApplicationCommandInteractionCreate) {
+	// 経済機能無効化: 即時応答
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent("経済機能は現在無効化されています。/crypto は利用できません。").
+		SetEphemeral(true).
+		Build())
+	return
 	data := event.SlashCommandInteractionData()
 	if data.SubCommandName == nil {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -93,6 +99,13 @@ func HandleCryptoSlash(logger zerolog.Logger, economy *service.EconomyService, e
 }
 
 func HandleCryptoComponent(logger zerolog.Logger, economy *service.EconomyService, event *events.ComponentInteractionCreate) {
+	// 経済機能無効化: 即時応答
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent("経済機能は現在無効化されています。操作は行えません。").
+		SetEphemeral(true).
+		Build())
+	return
+
 	customID := event.Data.CustomID()
 	parts := strings.Split(customID, ":")
 	if len(parts) < 4 || parts[0] != "crypto" {

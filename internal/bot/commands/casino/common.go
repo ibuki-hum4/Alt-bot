@@ -178,14 +178,10 @@ func HandleCasinoComponent(economy *service.EconomyService, event *events.Compon
 		)).
 		Build())
 
-	if s.Game == "blackjack" || s.Game == "chinchiro" {
+	switch s.Game {
+	case "blackjack", "chinchiro":
 		if pngBytes, renderErr := renderCasinoResultPNG(s.Game, res); renderErr == nil {
 			fileName := fmt.Sprintf("%s-result.png", s.Game)
-			if s.Game == "blackjack" {
-				fileName = "blackjack-result.png"
-			} else if s.Game == "chinchiro" {
-				fileName = "chinchiro-result.png"
-			}
 			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 				SetContent(fmt.Sprintf("%s の画像結果です。", s.Title)).
 				AddFile(fileName, s.Title+" result", bytes.NewReader(pngBytes)).

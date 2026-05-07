@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -309,14 +308,13 @@ func resolveBlackjackIfNeeded(ctx context.Context, economy *service.EconomyServi
 	}
 
 	if blackjackSessionReadyToSettle(session) {
-		view := blackjackSnapshot(session, true, action, "ディーラーのターン")
 		blackjackMu.Unlock()
 		settled, err := settleBlackjack(ctx, economy, session)
 		if err != nil {
 			respondBlackjackError(event, "blackjack の精算に失敗しました。少し待って再試行してください。")
 			return
 		}
-		view = blackjackSnapshot(settled, true, action, settled.FinalReason)
+		view := blackjackSnapshot(settled, true, action, settled.FinalReason)
 		updateBlackjackMessage(event, view, settled.Closed)
 		return
 	}
@@ -904,62 +902,6 @@ func blackjackDealInitial(session *blackjackSession) {
 	blackjackDrawCard(session, &session.Dealer)
 }
 
-func dealBlackjackCard(session *blackjackSession, hand *blackjackHand) {
-	if hand == nil {
-		return
-	}
-	card := blackjackTakeCard(session)
-	hand.Cards = append(hand.Cards, card)
-}
-
-func blackjackPlayDealerLocked(session *blackjackSession) {
-	for {
-		total, soft := blackjackHandValue(session.Dealer)
-		if total > 21 {
-			return
-		}
-		if total < blackjackDealerStandSoft {
-			blackjackDrawCard(session, &session.Dealer)
-			continue
-		}
-		if total == blackjackDealerStandSoft && soft {
-			return
-		}
-		return
-	}
-}
-
-func blackjackPlayDealerLegacy(session *blackjackSession) {
-	blackjackMu.Lock()
-	defer blackjackMu.Unlock()
-	blackjackPlayDealerLocked(session)
-}
-
-func blackjackDealerFinalTotal(session *blackjackSession) int {
-	total, _ := blackjackHandValue(session.Dealer)
-	return total
-}
-
-func blackjackDealerBust(session *blackjackSession) bool {
-	return blackjackDealerFinalTotal(session) > 21
-}
-
-func blackjackUnlockAndSnapshot(session *blackjackSession, revealDealer bool, action string, footer string) blackjackRenderState {
-	return blackjackSnapshot(session, revealDealer, action, footer)
-}
-
-func blackjackFinalizeView(session *blackjackSession, reason string) blackjackRenderState {
-	return blackjackSnapshot(session, true, "settle", reason)
-}
-
-func blackjackOpenSession(session *blackjackSession) blackjackRenderState {
-	return blackjackSnapshot(session, false, "start", blackjackActionMessage(session))
-}
-
-func blackjackAwaitingDealer(session *blackjackSession) bool {
-	return blackjackSessionReadyToSettle(session)
-}
-
 func blackjackPlayerHasNaturalBlackjack(session *blackjackSession) bool {
 	if len(session.Hands) == 0 {
 		return false
@@ -969,92 +911,4 @@ func blackjackPlayerHasNaturalBlackjack(session *blackjackSession) bool {
 
 func blackjackSessionHasDealerBlackjack(session *blackjackSession) bool {
 	return blackjackIsNaturalBlackjack(session.Dealer)
-}
-
-func blackjackDisplayCards(cards []blackjackCard) []string {
-	labels := make([]string, 0, len(cards))
-	for _, card := range cards {
-		labels = append(labels, blackjackCardString(card))
-	}
-	return labels
-}
-
-func blackjackSortedHands(session *blackjackSession) []blackjackHand {
-	hands := append([]blackjackHand(nil), session.Hands...)
-	sort.SliceStable(hands, func(i, j int) bool { return i < j })
-	return hands
-}
-
-func blackjackCanAdvance(session *blackjackSession) bool {
-	return !session.Closed && session.ActiveHand < len(session.Hands)
-}
-
-func blackjackSessionSummary(session *blackjackSession) string {
-	parts := make([]string, 0, len(session.Hands))
-	for i, hand := range session.Hands {
-		total, _ := blackjackHandValue(hand.Cards)
-		parts = append(parts, fmt.Sprintf("H%d:%d", i+1, total))
-	}
-	return strings.Join(parts, ", ")
-}
-
-func blackjackEnsureInitialDeal(session *blackjackSession) {
-	if len(session.Dealer) > 0 || len(session.Hands) == 0 || len(session.Hands[0].Cards) > 0 {
-		return
-	}
-	blackjackDealInitial(session)
-}
-
-func blackjackCheckNaturalEnd(session *blackjackSession) bool {
-	playerBJ := blackjackPlayerHasNaturalBlackjack(session)
-	dealerBJ := blackjackSessionHasDealerBlackjack(session)
-	return playerBJ || dealerBJ
-}
-
-func blackjackInitialOutcome(session *blackjackSession) int64 {
-	playerBJ := blackjackPlayerHasNaturalBlackjack(session)
-	dealerBJ := blackjackSessionHasDealerBlackjack(session)
-	if playerBJ && dealerBJ {
-		return session.BaseBet
-	}
-	if playerBJ {
-		return session.BaseBet + session.BaseBet + session.BaseBet/2
-	}
-	if dealerBJ {
-		return 0
-	}
-	return -1
-}
-
-func blackjackSessionLabel(session *blackjackSession) string {
-	if session.Closed {
-		return session.FinalReason
-	}
-	return blackjackActionMessage(session)
-}
-
-func blackjackIsDealerVisible(session *blackjackSession) bool {
-	return session.DealersRevealed || session.Closed
-}
-
-func blackjackSessionStateText(session *blackjackSession) string {
-	if session.Closed {
-		return session.FinalReason
-	}
-	return fmt.Sprintf("残高 %d %s", session.BalanceAfter, service.CurrencyYenUnit)
-}
-
-func blackjackFormatError(err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
-}
-
-func blackjackSessionFooter(session *blackjackSession) string {
-	return fmt.Sprintf("session:%s", session.ID)
-}
-
-func blackjackPrepareSession(session *blackjackSession) {
-	blackjackEnsureInitialDeal(session)
 }

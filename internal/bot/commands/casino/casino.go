@@ -5,7 +5,6 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/snowflake/v2"
 )
 
 func HandleCasino(economy *service.EconomyService, event *events.ApplicationCommandInteractionCreate) {
@@ -41,16 +40,4 @@ func HandleCasino(economy *service.EconomyService, event *events.ApplicationComm
 			SetEphemeral(true).
 			Build())
 	}
-}
-
-func sendCasinoPlaceholder(event *events.ApplicationCommandInteractionCreate, guildID snowflake.ID, title string) {
-	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetEmbeds(discord.NewEmbedBuilder().
-			SetTitle(title).
-			SetDescription("このゲームは現在ベータ実装中です。最小機能を順次追加します。").
-			AddField("Guild", guildID.String(), true).
-			SetColor(0xF1C40F).
-			Build()).
-		SetEphemeral(true).
-		Build())
 }

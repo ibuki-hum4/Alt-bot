@@ -415,7 +415,7 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 }
 
 func (h *Handlers) OnAutocompleteInteraction(event *events.AutocompleteInteractionCreate) {
-	data := event.AutocompleteInteraction.Data
+	data := event.Data
 	if data.CommandName != "rp" {
 		return
 	}

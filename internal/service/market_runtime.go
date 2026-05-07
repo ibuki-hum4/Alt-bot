@@ -25,7 +25,7 @@ const (
 	feeRevenueBPS = int64(1000)
 
 	baseDailyIssuanceCap   int64 = 20000
-	maxSameNewsEventStreak       = 3
+	maxSameNewsEventStreak int = 3
 
 	circuitCautionThreshold = 0.05
 	circuitAlertThreshold   = 0.10
@@ -169,7 +169,7 @@ func evolveCircuitState(level CircuitLevel, oldPrice float64, newPrice float64, 
 		change = math.Abs((newPrice - oldPrice) / oldPrice)
 	}
 
-	next := level
+	var next CircuitLevel
 	breach := false
 	if change >= circuitHaltThreshold {
 		next = CircuitHalt

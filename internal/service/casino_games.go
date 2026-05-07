@@ -173,7 +173,7 @@ func (s *EconomyService) PlayRoulette(ctx context.Context, discordID string, bet
 			return err
 		}
 
-		spinLabel := fmt.Sprintf("%d", spin)
+		var spinLabel string
 		if spin == 0 {
 			spinLabel = "0(GREEN)"
 		} else if isRouletteRed(spin) {

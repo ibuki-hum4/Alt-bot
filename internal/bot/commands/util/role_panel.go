@@ -79,7 +79,7 @@ func HandleRolePanelAutocomplete(logger zerolog.Logger, cfg config.Config, roleP
 		return
 	}
 
-	data := event.AutocompleteInteraction.Data
+	data := event.Data
 	if data.CommandName != "rp" {
 		return
 	}
@@ -193,7 +193,7 @@ func HandleRolePanelComponent(logger zerolog.Logger, cfg config.Config, event *e
 
 	result := buildRolePanelResult(added, removed, failed)
 
-	message, err := event.Client().Rest().GetMessage(event.ChannelID(), messageID)
+	message, err := event.Client().Rest().GetMessage(event.Channel().ID(), messageID)
 	if err != nil || message == nil {
 		logger.Error().Err(err).Str("message_id", messageID.String()).Msg("failed to fetch role panel message for refresh")
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -214,7 +214,7 @@ func HandleRolePanelComponent(logger zerolog.Logger, cfg config.Config, event *e
 	}
 
 	refreshRow := discord.NewActionRow(buildRolePanelMenu(menu.CustomID, menu.Placeholder, menu.Options))
-	if _, err := event.Client().Rest().UpdateMessage(event.ChannelID(), messageID, discord.NewMessageUpdateBuilder().
+	if _, err := event.Client().Rest().UpdateMessage(event.Channel().ID(), messageID, discord.NewMessageUpdateBuilder().
 		SetContainerComponents(refreshRow).
 		Build()); err != nil {
 		logger.Warn().Err(err).Str("message_id", messageID.String()).Msg("failed to refresh role panel selection state")
@@ -236,7 +236,7 @@ func handleRolePanelCreate(logger zerolog.Logger, rolePanels *service.RolePanelS
 			Build())
 		return
 	}
-	channelID := event.ChannelID()
+	channelID := event.Channel().ID()
 	if channel, ok := data.OptChannel("channel"); ok && channel.ID != 0 {
 		channelID = channel.ID
 	}
@@ -678,10 +678,6 @@ func rolePanelDescription(role discord.Role) string {
 		}
 	}
 	return role.Mention()
-}
-
-func rolePanelPlaceholderOption() discord.StringSelectMenuOption {
-	return discord.NewStringSelectMenuOption(rolePanelDefaultPlacehold, rolePanelPlaceholderValue).WithDescription("この項目は選択不要")
 }
 
 func rolePanelRoleCount(options []discord.StringSelectMenuOption) int {

@@ -5,11 +5,15 @@ go 1.25.0
 require (
 	entgo.io/ent v0.14.5
 	github.com/disgoorg/disgo v0.18.8
+	github.com/disgoorg/json v1.1.0
+	github.com/disgoorg/snowflake/v2 v2.0.1
+	github.com/fogleman/gg v1.3.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/lib/pq v1.10.9
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
 	go.uber.org/fx v1.24.0
+	golang.org/x/image v0.39.0
 )
 
 require (
@@ -17,9 +21,6 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
-	github.com/disgoorg/json v1.1.0 // indirect
-	github.com/disgoorg/snowflake/v2 v2.0.1 // indirect
-	github.com/fogleman/gg v1.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
@@ -50,7 +51,6 @@ require (
 	go.uber.org/zap v1.26.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/image v0.39.0 // indirect
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect

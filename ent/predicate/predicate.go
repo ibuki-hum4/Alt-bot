@@ -15,6 +15,9 @@ type MarketState func(*sql.Selector)
 // PriceHistory is the predicate function for pricehistory builders.
 type PriceHistory func(*sql.Selector)
 
+// RolePanel is the predicate function for rolepanel builders.
+type RolePanel func(*sql.Selector)
+
 // TransactionLog is the predicate function for transactionlog builders.
 type TransactionLog func(*sql.Selector)
 

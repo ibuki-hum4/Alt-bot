@@ -3,6 +3,8 @@ package commands
 import (
 	"github.com/disgoorg/disgo/discord"
 	disgojson "github.com/disgoorg/json"
+
+	"alt-bot/internal/bot/rolepanel"
 )
 
 func Definitions() []discord.ApplicationCommandCreate {
@@ -125,17 +127,7 @@ func Definitions() []discord.ApplicationCommandCreate {
 				discord.ApplicationCommandOptionSubCommand{
 					Name:        "create",
 					Description: "ロールパネルを作成",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionChannel{
-							Name:        "channel",
-							Description: "作成先チャンネル(省略時は現在のチャンネル)",
-							Required:    false,
-						},
-						discord.ApplicationCommandOptionString{
-							Name:        "roles",
-							Description: "初期ロール(例: 123,456,789)",
-							Required:    false,
-						},
+					Options: append(rolepanel.RoleOptions(),
 						discord.ApplicationCommandOptionString{
 							Name:        "title",
 							Description: "埋め込みタイトル(省略時は既定)",
@@ -146,29 +138,32 @@ func Definitions() []discord.ApplicationCommandCreate {
 							Description: "埋め込み説明(省略時は既定)",
 							Required:    false,
 						},
-					},
+					),
 				},
 				discord.ApplicationCommandOptionSubCommand{
 					Name:        "add",
 					Description: "ロールパネルにロールを追加",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionChannel{
-							Name:        "channel",
-							Description: "ロールパネルのチャンネル",
-							Required:    true,
-						},
+					Options: append([]discord.ApplicationCommandOption{
 						discord.ApplicationCommandOptionString{
-							Name:        "message_id",
-							Description: "ロールパネルのメッセージID",
-							Required:    true,
+							Name:         "panel",
+							Description:  "追加先ロールパネル",
+							Required:     true,
+							Autocomplete: true,
 						},
-						discord.ApplicationCommandOptionString{
-							Name:        "roles",
-							Description: "追加ロール(例: 123,456,789)",
-							Required:    true,
-						},
-					},
+					}, rolepanel.RoleOptions()...),
 				},
+							discord.ApplicationCommandOptionSubCommand{
+								Name:        "delete",
+								Description: "ロールパネルを削除",
+								Options: []discord.ApplicationCommandOption{
+									discord.ApplicationCommandOptionString{
+										Name:         "panel",
+										Description:  "削除するロールパネル",
+										Required:     true,
+										Autocomplete: true,
+									},
+								},
+							},
 			},
 		},
 		discord.SlashCommandCreate{

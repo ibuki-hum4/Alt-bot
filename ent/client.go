@@ -14,6 +14,7 @@ import (
 	"alt-bot/ent/guild"
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/pricehistory"
+	"alt-bot/ent/rolepanel"
 	"alt-bot/ent/transactionlog"
 	"alt-bot/ent/user"
 
@@ -33,6 +34,8 @@ type Client struct {
 	MarketState *MarketStateClient
 	// PriceHistory is the client for interacting with the PriceHistory builders.
 	PriceHistory *PriceHistoryClient
+	// RolePanel is the client for interacting with the RolePanel builders.
+	RolePanel *RolePanelClient
 	// TransactionLog is the client for interacting with the TransactionLog builders.
 	TransactionLog *TransactionLogClient
 	// User is the client for interacting with the User builders.
@@ -51,6 +54,7 @@ func (c *Client) init() {
 	c.Guild = NewGuildClient(c.config)
 	c.MarketState = NewMarketStateClient(c.config)
 	c.PriceHistory = NewPriceHistoryClient(c.config)
+	c.RolePanel = NewRolePanelClient(c.config)
 	c.TransactionLog = NewTransactionLogClient(c.config)
 	c.User = NewUserClient(c.config)
 }
@@ -148,6 +152,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Guild:          NewGuildClient(cfg),
 		MarketState:    NewMarketStateClient(cfg),
 		PriceHistory:   NewPriceHistoryClient(cfg),
+		RolePanel:      NewRolePanelClient(cfg),
 		TransactionLog: NewTransactionLogClient(cfg),
 		User:           NewUserClient(cfg),
 	}, nil
@@ -172,6 +177,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Guild:          NewGuildClient(cfg),
 		MarketState:    NewMarketStateClient(cfg),
 		PriceHistory:   NewPriceHistoryClient(cfg),
+		RolePanel:      NewRolePanelClient(cfg),
 		TransactionLog: NewTransactionLogClient(cfg),
 		User:           NewUserClient(cfg),
 	}, nil
@@ -202,21 +208,21 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Guild.Use(hooks...)
-	c.MarketState.Use(hooks...)
-	c.PriceHistory.Use(hooks...)
-	c.TransactionLog.Use(hooks...)
-	c.User.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Guild, c.MarketState, c.PriceHistory, c.RolePanel, c.TransactionLog, c.User,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Guild.Intercept(interceptors...)
-	c.MarketState.Intercept(interceptors...)
-	c.PriceHistory.Intercept(interceptors...)
-	c.TransactionLog.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Guild, c.MarketState, c.PriceHistory, c.RolePanel, c.TransactionLog, c.User,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -228,6 +234,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.MarketState.mutate(ctx, m)
 	case *PriceHistoryMutation:
 		return c.PriceHistory.mutate(ctx, m)
+	case *RolePanelMutation:
+		return c.RolePanel.mutate(ctx, m)
 	case *TransactionLogMutation:
 		return c.TransactionLog.mutate(ctx, m)
 	case *UserMutation:
@@ -636,6 +644,139 @@ func (c *PriceHistoryClient) mutate(ctx context.Context, m *PriceHistoryMutation
 	}
 }
 
+// RolePanelClient is a client for the RolePanel schema.
+type RolePanelClient struct {
+	config
+}
+
+// NewRolePanelClient returns a client for the RolePanel from the given config.
+func NewRolePanelClient(c config) *RolePanelClient {
+	return &RolePanelClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rolepanel.Hooks(f(g(h())))`.
+func (c *RolePanelClient) Use(hooks ...Hook) {
+	c.hooks.RolePanel = append(c.hooks.RolePanel, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rolepanel.Intercept(f(g(h())))`.
+func (c *RolePanelClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RolePanel = append(c.inters.RolePanel, interceptors...)
+}
+
+// Create returns a builder for creating a RolePanel entity.
+func (c *RolePanelClient) Create() *RolePanelCreate {
+	mutation := newRolePanelMutation(c.config, OpCreate)
+	return &RolePanelCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RolePanel entities.
+func (c *RolePanelClient) CreateBulk(builders ...*RolePanelCreate) *RolePanelCreateBulk {
+	return &RolePanelCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RolePanelClient) MapCreateBulk(slice any, setFunc func(*RolePanelCreate, int)) *RolePanelCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RolePanelCreateBulk{err: fmt.Errorf("calling to RolePanelClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RolePanelCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RolePanelCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RolePanel.
+func (c *RolePanelClient) Update() *RolePanelUpdate {
+	mutation := newRolePanelMutation(c.config, OpUpdate)
+	return &RolePanelUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RolePanelClient) UpdateOne(_m *RolePanel) *RolePanelUpdateOne {
+	mutation := newRolePanelMutation(c.config, OpUpdateOne, withRolePanel(_m))
+	return &RolePanelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RolePanelClient) UpdateOneID(id int) *RolePanelUpdateOne {
+	mutation := newRolePanelMutation(c.config, OpUpdateOne, withRolePanelID(id))
+	return &RolePanelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RolePanel.
+func (c *RolePanelClient) Delete() *RolePanelDelete {
+	mutation := newRolePanelMutation(c.config, OpDelete)
+	return &RolePanelDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RolePanelClient) DeleteOne(_m *RolePanel) *RolePanelDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RolePanelClient) DeleteOneID(id int) *RolePanelDeleteOne {
+	builder := c.Delete().Where(rolepanel.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RolePanelDeleteOne{builder}
+}
+
+// Query returns a query builder for RolePanel.
+func (c *RolePanelClient) Query() *RolePanelQuery {
+	return &RolePanelQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRolePanel},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RolePanel entity by its id.
+func (c *RolePanelClient) Get(ctx context.Context, id int) (*RolePanel, error) {
+	return c.Query().Where(rolepanel.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RolePanelClient) GetX(ctx context.Context, id int) *RolePanel {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RolePanelClient) Hooks() []Hook {
+	return c.hooks.RolePanel
+}
+
+// Interceptors returns the client interceptors.
+func (c *RolePanelClient) Interceptors() []Interceptor {
+	return c.inters.RolePanel
+}
+
+func (c *RolePanelClient) mutate(ctx context.Context, m *RolePanelMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RolePanelCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RolePanelUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RolePanelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RolePanelDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RolePanel mutation op: %q", m.Op())
+	}
+}
+
 // TransactionLogClient is a client for the TransactionLog schema.
 type TransactionLogClient struct {
 	config
@@ -905,9 +1046,10 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Guild, MarketState, PriceHistory, TransactionLog, User []ent.Hook
+		Guild, MarketState, PriceHistory, RolePanel, TransactionLog, User []ent.Hook
 	}
 	inters struct {
-		Guild, MarketState, PriceHistory, TransactionLog, User []ent.Interceptor
+		Guild, MarketState, PriceHistory, RolePanel, TransactionLog,
+		User []ent.Interceptor
 	}
 )

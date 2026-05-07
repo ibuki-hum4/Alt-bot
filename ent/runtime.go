@@ -6,6 +6,7 @@ import (
 	"alt-bot/ent/guild"
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/pricehistory"
+	"alt-bot/ent/rolepanel"
 	"alt-bot/ent/schema"
 	"alt-bot/ent/transactionlog"
 	"alt-bot/ent/user"
@@ -90,6 +91,42 @@ func init() {
 	pricehistoryDescCreatedAt := pricehistoryFields[1].Descriptor()
 	// pricehistory.DefaultCreatedAt holds the default value on creation for the created_at field.
 	pricehistory.DefaultCreatedAt = pricehistoryDescCreatedAt.Default.(func() time.Time)
+	rolepanelFields := schema.RolePanel{}.Fields()
+	_ = rolepanelFields
+	// rolepanelDescGuildID is the schema descriptor for guild_id field.
+	rolepanelDescGuildID := rolepanelFields[0].Descriptor()
+	// rolepanel.GuildIDValidator is a validator for the "guild_id" field. It is called by the builders before save.
+	rolepanel.GuildIDValidator = rolepanelDescGuildID.Validators[0].(func(string) error)
+	// rolepanelDescChannelID is the schema descriptor for channel_id field.
+	rolepanelDescChannelID := rolepanelFields[1].Descriptor()
+	// rolepanel.ChannelIDValidator is a validator for the "channel_id" field. It is called by the builders before save.
+	rolepanel.ChannelIDValidator = rolepanelDescChannelID.Validators[0].(func(string) error)
+	// rolepanelDescMessageID is the schema descriptor for message_id field.
+	rolepanelDescMessageID := rolepanelFields[2].Descriptor()
+	// rolepanel.MessageIDValidator is a validator for the "message_id" field. It is called by the builders before save.
+	rolepanel.MessageIDValidator = rolepanelDescMessageID.Validators[0].(func(string) error)
+	// rolepanelDescTitle is the schema descriptor for title field.
+	rolepanelDescTitle := rolepanelFields[3].Descriptor()
+	// rolepanel.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	rolepanel.TitleValidator = rolepanelDescTitle.Validators[0].(func(string) error)
+	// rolepanelDescDescription is the schema descriptor for description field.
+	rolepanelDescDescription := rolepanelFields[4].Descriptor()
+	// rolepanel.DefaultDescription holds the default value on creation for the description field.
+	rolepanel.DefaultDescription = rolepanelDescDescription.Default.(string)
+	// rolepanelDescRoleIds is the schema descriptor for role_ids field.
+	rolepanelDescRoleIds := rolepanelFields[5].Descriptor()
+	// rolepanel.DefaultRoleIds holds the default value on creation for the role_ids field.
+	rolepanel.DefaultRoleIds = rolepanelDescRoleIds.Default.(string)
+	// rolepanelDescCreatedAt is the schema descriptor for created_at field.
+	rolepanelDescCreatedAt := rolepanelFields[6].Descriptor()
+	// rolepanel.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rolepanel.DefaultCreatedAt = rolepanelDescCreatedAt.Default.(func() time.Time)
+	// rolepanelDescUpdatedAt is the schema descriptor for updated_at field.
+	rolepanelDescUpdatedAt := rolepanelFields[7].Descriptor()
+	// rolepanel.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rolepanel.DefaultUpdatedAt = rolepanelDescUpdatedAt.Default.(func() time.Time)
+	// rolepanel.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rolepanel.UpdateDefaultUpdatedAt = rolepanelDescUpdatedAt.UpdateDefault.(func() time.Time)
 	transactionlogFields := schema.TransactionLog{}.Fields()
 	_ = transactionlogFields
 	// transactionlogDescTxID is the schema descriptor for tx_id field.

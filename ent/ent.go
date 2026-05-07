@@ -6,6 +6,7 @@ import (
 	"alt-bot/ent/guild"
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/pricehistory"
+	"alt-bot/ent/rolepanel"
 	"alt-bot/ent/transactionlog"
 	"alt-bot/ent/user"
 	"context"
@@ -80,6 +81,7 @@ func checkColumn(t, c string) error {
 			guild.Table:          guild.ValidColumn,
 			marketstate.Table:    marketstate.ValidColumn,
 			pricehistory.Table:   pricehistory.ValidColumn,
+			rolepanel.Table:      rolepanel.ValidColumn,
 			transactionlog.Table: transactionlog.ValidColumn,
 			user.Table:           user.ValidColumn,
 		})

@@ -44,6 +44,7 @@ type userBurstCounter struct {
 
 type Handlers struct {
 	economy  *service.EconomyService
+	rolePanels *service.RolePanelService
 	ownerIDs map[string]struct{}
 	logger   zerolog.Logger
 	cfg      config.Config
@@ -65,7 +66,7 @@ type Handlers struct {
 	maxComponentPerWindow   int
 }
 
-func NewHandlers(economy *service.EconomyService, cfg config.Config, ownerIDs []string, logger zerolog.Logger) *Handlers {
+func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelService, cfg config.Config, ownerIDs []string, logger zerolog.Logger) *Handlers {
 	set := make(map[string]struct{}, len(ownerIDs))
 	for _, id := range ownerIDs {
 		normalized := strings.TrimSpace(id)
@@ -102,6 +103,7 @@ func NewHandlers(economy *service.EconomyService, cfg config.Config, ownerIDs []
 
 	return &Handlers{
 		economy:                 economy,
+		rolePanels:             rolePanels,
 		ownerIDs:                set,
 		logger:                  logger,
 		cfg:                     cfg,
@@ -401,7 +403,7 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 		}
 		cmdutil.HandleChart(h.logger, h.economy, event)
 	case "rp":
-		cmdutil.HandleRolePanel(h.logger, h.cfg, event)
+		cmdutil.HandleRolePanel(h.logger, h.cfg, h.rolePanels, event)
 	case "mod":
 		cmdmod.HandleModeration(event)
 	default:
@@ -410,6 +412,14 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 			SetEphemeral(true).
 			Build())
 	}
+}
+
+func (h *Handlers) OnAutocompleteInteraction(event *events.AutocompleteInteractionCreate) {
+	data := event.AutocompleteInteraction.Data
+	if data.CommandName != "rp" {
+		return
+	}
+	cmdutil.HandleRolePanelAutocomplete(h.logger, h.cfg, h.rolePanels, event)
 }
 
 func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCreate) {

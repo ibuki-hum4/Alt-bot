@@ -28,6 +28,7 @@ func main() {
 			newLogger,
 			db.NewEntClient,
 			service.NewEconomyService,
+			service.NewRolePanelService,
 			ibot.NewHandlers,
 			newDisgoClient,
 		),
@@ -58,6 +59,8 @@ func newDisgoClient(cfg config.Config, handlers *ibot.Handlers, logger zerolog.L
 			switch e := event.(type) {
 			case *events.ApplicationCommandInteractionCreate:
 				handlers.OnApplicationCommandInteraction(e)
+			case *events.AutocompleteInteractionCreate:
+				handlers.OnAutocompleteInteraction(e)
 			case *events.ComponentInteractionCreate:
 				handlers.OnComponentInteraction(e)
 			}

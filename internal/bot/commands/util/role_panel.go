@@ -1,11 +1,15 @@
 package util
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"alt-bot/internal/bot/rolepanel"
 	"alt-bot/internal/config"
+	"alt-bot/internal/service"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
@@ -23,7 +27,7 @@ const (
 	rolePanelDefaultPlacehold = "ロールを選択"
 )
 
-func HandleRolePanel(logger zerolog.Logger, cfg config.Config, event *events.ApplicationCommandInteractionCreate) {
+func HandleRolePanel(logger zerolog.Logger, cfg config.Config, rolePanels *service.RolePanelService, event *events.ApplicationCommandInteractionCreate) {
 	guildID := event.GuildID()
 	if guildID == nil {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -44,7 +48,7 @@ func HandleRolePanel(logger zerolog.Logger, cfg config.Config, event *events.App
 	data := event.SlashCommandInteractionData()
 	if data.SubCommandName == nil {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("サブコマンドを指定してください。 (create/add)").
+			SetContent("サブコマンドを指定してください。 (create/add/delete)").
 			SetEphemeral(true).
 			Build())
 		return
@@ -52,15 +56,55 @@ func HandleRolePanel(logger zerolog.Logger, cfg config.Config, event *events.App
 
 	switch *data.SubCommandName {
 	case "create":
-		handleRolePanelCreate(logger, event)
+		handleRolePanelCreate(logger, rolePanels, event)
 	case "add":
-		handleRolePanelAdd(logger, event)
+		handleRolePanelAdd(logger, rolePanels, event)
+	case "delete":
+		handleRolePanelDelete(logger, rolePanels, event)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("未対応のサブコマンドです。 (create/add)").
+			SetContent("未対応のサブコマンドです。 (create/add/delete)").
 			SetEphemeral(true).
 			Build())
 	}
+}
+
+func HandleRolePanelAutocomplete(logger zerolog.Logger, cfg config.Config, rolePanels *service.RolePanelService, event *events.AutocompleteInteractionCreate) {
+	guildID := event.GuildID()
+	if guildID == nil {
+		return
+	}
+
+	if ok, _ := allowRolePanel(cfg, *guildID); !ok {
+		return
+	}
+
+	data := event.AutocompleteInteraction.Data
+	if data.CommandName != "rp" {
+		return
+	}
+	focused := data.Focused()
+	if focused.Name != "panel" {
+		return
+	}
+
+	query := strings.TrimSpace(data.String("panel"))
+	panels, err := rolePanels.ListPanels(context.Background(), *guildID, query, 25)
+	if err != nil {
+		logger.Warn().Err(err).Str("guild_id", guildID.String()).Msg("failed to list role panels for autocomplete")
+		_ = event.AutocompleteResult(nil)
+		return
+	}
+
+	choices := make([]discord.AutocompleteChoice, 0, len(panels))
+	for _, panel := range panels {
+		name := truncateRolePanelText(panel.Title, 100)
+		if name == "" {
+			name = fmt.Sprintf("ロールパネル #%d", panel.ID)
+		}
+		choices = append(choices, discord.AutocompleteChoiceString{Name: name, Value: strconv.Itoa(panel.ID)})
+	}
+	_ = event.AutocompleteResult(choices)
 }
 
 func HandleRolePanelComponent(logger zerolog.Logger, cfg config.Config, event *events.ComponentInteractionCreate) {
@@ -84,6 +128,16 @@ func HandleRolePanelComponent(logger zerolog.Logger, cfg config.Config, event *e
 	if ok, message := allowRolePanel(cfg, *guildID); !ok {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent(message).
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	messageIDRaw := strings.TrimPrefix(data.CustomID(), rolePanelCustomIDPrefix)
+	messageID, err := snowflake.Parse(messageIDRaw)
+	if err != nil || messageID == 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("ロールパネルの識別子が不正です。").
 			SetEphemeral(true).
 			Build())
 		return
@@ -137,14 +191,42 @@ func HandleRolePanelComponent(logger zerolog.Logger, cfg config.Config, event *e
 		added = append(added, discord.RoleMention(roleID))
 	}
 
-	message := buildRolePanelResult(added, removed, failed)
+	result := buildRolePanelResult(added, removed, failed)
+
+	message, err := event.Client().Rest().GetMessage(event.ChannelID(), messageID)
+	if err != nil || message == nil {
+		logger.Error().Err(err).Str("message_id", messageID.String()).Msg("failed to fetch role panel message for refresh")
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent(result).
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	menu, ok := findRolePanelMenu(message)
+	if !ok {
+		logger.Error().Str("message_id", messageID.String()).Msg("role panel menu not found for refresh")
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent(result).
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	refreshRow := discord.NewActionRow(buildRolePanelMenu(menu.CustomID, menu.Placeholder, menu.Options))
+	if _, err := event.Client().Rest().UpdateMessage(event.ChannelID(), messageID, discord.NewMessageUpdateBuilder().
+		SetContainerComponents(refreshRow).
+		Build()); err != nil {
+		logger.Warn().Err(err).Str("message_id", messageID.String()).Msg("failed to refresh role panel selection state")
+	}
+
 	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent(message).
+		SetContent(result).
 		SetEphemeral(true).
 		Build())
 }
 
-func handleRolePanelCreate(logger zerolog.Logger, event *events.ApplicationCommandInteractionCreate) {
+func handleRolePanelCreate(logger zerolog.Logger, rolePanels *service.RolePanelService, event *events.ApplicationCommandInteractionCreate) {
 	data := event.SlashCommandInteractionData()
 	guildID := event.GuildID()
 	if guildID == nil {
@@ -175,33 +257,7 @@ func handleRolePanelCreate(logger zerolog.Logger, event *events.ApplicationComma
 		description = rolePanelDefaultDesc
 	}
 
-	rolesRaw := strings.TrimSpace(data.String("roles"))
-	roleIDs, invalid := parseRoleIDs(rolesRaw)
-	resolvedRoles := make([]discord.Role, 0, len(roleIDs))
-	missing := make([]string, 0)
-	if len(roleIDs) > 0 {
-		roles, err := event.Client().Rest().GetRoles(*guildID)
-		if err != nil {
-			logger.Error().Err(err).Msg("failed to fetch roles for role panel")
-			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-				SetContent("ロール一覧の取得に失敗しました。権限を確認してください。").
-				SetEphemeral(true).
-				Build())
-			return
-		}
-		roleMap := make(map[snowflake.ID]discord.Role, len(roles))
-		for _, role := range roles {
-			roleMap[role.ID] = role
-		}
-		for _, id := range roleIDs {
-			role, ok := roleMap[id]
-			if !ok {
-				missing = append(missing, discord.RoleMention(id))
-				continue
-			}
-			resolvedRoles = append(resolvedRoles, role)
-		}
-	}
+	resolvedRoles := rolepanel.CollectRoles(data)
 
 	options, addedRoles, skippedRoles, overflowRoles := buildRolePanelOptions(nil, resolvedRoles)
 	embed := buildRolePanelEmbed(title, description, addedRoles)
@@ -232,8 +288,12 @@ func handleRolePanelCreate(logger zerolog.Logger, event *events.ApplicationComma
 		return
 	}
 
+	if _, err := rolePanels.UpsertPanel(context.Background(), *guildID, channelID, message.ID, title, description, roleIDsFromOptions(addedRoles)); err != nil {
+		logger.Warn().Err(err).Str("message_id", message.ID.String()).Msg("failed to persist role panel record")
+	}
+
 	url := discord.MessageURL(*guildID, channelID, message.ID)
-	result := buildRolePanelAddResult(roleMentions(addedRoles), roleMentions(skippedRoles), missing, invalid, roleMentions(overflowRoles))
+	result := buildRolePanelAddResult(roleMentions(addedRoles), roleMentions(skippedRoles), nil, nil, roleMentions(overflowRoles))
 	content := fmt.Sprintf("ロールパネルを作成しました: %s", url)
 	if result != "" {
 		content = content + "\n" + result
@@ -244,7 +304,7 @@ func handleRolePanelCreate(logger zerolog.Logger, event *events.ApplicationComma
 		Build())
 }
 
-func handleRolePanelAdd(logger zerolog.Logger, event *events.ApplicationCommandInteractionCreate) {
+func handleRolePanelAdd(logger zerolog.Logger, rolePanels *service.RolePanelService, event *events.ApplicationCommandInteractionCreate) {
 	data := event.SlashCommandInteractionData()
 	guildID := event.GuildID()
 	if guildID == nil {
@@ -254,75 +314,54 @@ func handleRolePanelAdd(logger zerolog.Logger, event *events.ApplicationCommandI
 			Build())
 		return
 	}
-	channel, ok := data.OptChannel("channel")
-	if !ok || channel.ID == 0 {
+
+	panelValue := strings.TrimSpace(data.String("panel"))
+	if panelValue == "" {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("チャンネルを指定してください。").
+			SetContent("ロールパネルを選択してください。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+	panelID, err := strconv.Atoi(panelValue)
+	if err != nil || panelID <= 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("ロールパネルの形式が正しくありません。").
 			SetEphemeral(true).
 			Build())
 		return
 	}
 
-	messageIDRaw := strings.TrimSpace(data.String("message_id"))
-	if messageIDRaw == "" {
-		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("メッセージIDを指定してください。").
-			SetEphemeral(true).
-			Build())
-		return
-	}
-	messageID, err := snowflake.Parse(messageIDRaw)
-	if err != nil || messageID == 0 {
-		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("メッセージIDの形式が正しくありません。").
-			SetEphemeral(true).
-			Build())
-		return
-	}
-
-	rolesRaw := strings.TrimSpace(data.String("roles"))
-	roleIDs, invalid := parseRoleIDs(rolesRaw)
-	if len(roleIDs) == 0 {
-		message := "ロールを指定してください。"
-		if len(invalid) > 0 {
-			message = "ロール指定が無効です: " + strings.Join(invalid, ", ")
-		}
-		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent(message).
-			SetEphemeral(true).
-			Build())
-		return
-	}
-
-	roles, err := event.Client().Rest().GetRoles(*guildID)
+	panel, err := rolePanels.GetPanelByID(context.Background(), *guildID, panelID)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to fetch roles for role panel")
+		logger.Error().Err(err).Int("panel_id", panelID).Msg("failed to load role panel record")
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("ロール一覧の取得に失敗しました。権限を確認してください。").
+			SetContent("ロールパネル情報の取得に失敗しました。再度お試しください。").
 			SetEphemeral(true).
 			Build())
 		return
 	}
-	roleMap := make(map[snowflake.ID]discord.Role, len(roles))
-	for _, role := range roles {
-		roleMap[role.ID] = role
+
+	messageID, parseErr := snowflake.Parse(panel.MessageID)
+	if parseErr != nil || messageID == 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("保存されたメッセージIDが無効です。").
+			SetEphemeral(true).
+			Build())
+		return
 	}
-	resolvedRoles := make([]discord.Role, 0, len(roleIDs))
-	missing := make([]string, 0)
-	for _, id := range roleIDs {
-		role, ok := roleMap[id]
-		if !ok {
-			missing = append(missing, discord.RoleMention(id))
-			continue
-		}
-		resolvedRoles = append(resolvedRoles, role)
+	panelChannelID, parseErr := snowflake.Parse(panel.ChannelID)
+	if parseErr != nil || panelChannelID == 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("保存されたチャンネルIDが無効です。").
+			SetEphemeral(true).
+			Build())
+		return
 	}
+
+	resolvedRoles := rolepanel.CollectRoles(data)
 	if len(resolvedRoles) == 0 {
-		message := "追加できるロールがありませんでした。"
-		result := buildRolePanelAddResult(nil, nil, missing, invalid, nil)
-		if result != "" {
-			message = result
-		}
+		message := "ロールを指定してください。"
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent(message).
 			SetEphemeral(true).
@@ -330,7 +369,7 @@ func handleRolePanelAdd(logger zerolog.Logger, event *events.ApplicationCommandI
 		return
 	}
 
-	message, err := event.Client().Rest().GetMessage(channel.ID, messageID)
+	message, err := event.Client().Rest().GetMessage(panelChannelID, messageID)
 	if err != nil || message == nil {
 		logger.Error().Err(err).Msg("failed to fetch role panel message")
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -343,7 +382,7 @@ func handleRolePanelAdd(logger zerolog.Logger, event *events.ApplicationCommandI
 	menu, ok := findRolePanelMenu(message)
 	options, addedRoles, skippedRoles, overflowRoles := buildRolePanelOptions(menu.Options, resolvedRoles)
 	if len(addedRoles) == 0 {
-		result := buildRolePanelAddResult(nil, roleMentions(skippedRoles), missing, invalid, roleMentions(overflowRoles))
+		result := buildRolePanelAddResult(nil, roleMentions(skippedRoles), nil, nil, roleMentions(overflowRoles))
 		if result == "" {
 			result = "追加できるロールがありませんでした。"
 		}
@@ -372,7 +411,7 @@ func handleRolePanelAdd(logger zerolog.Logger, event *events.ApplicationCommandI
 		updatedEmbed = appendRolePanelEmbedField(updatedEmbed, rolePanelLabel(role), rolePanelDescription(role))
 	}
 
-	_, err = event.Client().Rest().UpdateMessage(channel.ID, message.ID, discord.NewMessageUpdateBuilder().
+	_, err = event.Client().Rest().UpdateMessage(panelChannelID, messageID, discord.NewMessageUpdateBuilder().
 		SetEmbeds(updatedEmbed).
 		SetContainerComponents(row).
 		Build())
@@ -385,7 +424,11 @@ func handleRolePanelAdd(logger zerolog.Logger, event *events.ApplicationCommandI
 		return
 	}
 
-	result := buildRolePanelAddResult(roleMentions(addedRoles), roleMentions(skippedRoles), missing, invalid, roleMentions(overflowRoles))
+	if _, err := rolePanels.AppendRoles(context.Background(), *guildID, messageID, roleIDsFromOptions(addedRoles)); err != nil {
+		logger.Warn().Err(err).Str("message_id", messageID.String()).Msg("failed to update role panel record")
+	}
+
+	result := buildRolePanelAddResult(roleMentions(addedRoles), roleMentions(skippedRoles), nil, nil, roleMentions(overflowRoles))
 	if result == "" {
 		result = "ロールを追加しました。"
 	}
@@ -395,8 +438,104 @@ func handleRolePanelAdd(logger zerolog.Logger, event *events.ApplicationCommandI
 		Build())
 }
 
-func DeleteRolePanel(logger zerolog.Logger, event *events.ApplicationCommandInteractionCreate) {
-// TODO: ロールパネル削除コマンドの実装
+func handleRolePanelDelete(logger zerolog.Logger, rolePanels *service.RolePanelService, event *events.ApplicationCommandInteractionCreate) {
+	data := event.SlashCommandInteractionData()
+	guildID := event.GuildID()
+	if guildID == nil {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("このコマンドはサーバー内でのみ使用できます。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+	panelValue := strings.TrimSpace(data.String("panel"))
+	if panelValue == "" {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("削除するロールパネルを選択してください。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+	panelID, err := strconv.Atoi(panelValue)
+	if err != nil || panelID <= 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("削除するロールパネルの形式が正しくありません。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	panel, err := rolePanels.GetPanelByID(context.Background(), *guildID, panelID)
+	if err != nil {
+		logger.Error().Err(err).Int("panel_id", panelID).Msg("failed to load role panel record")
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("ロールパネル情報の取得に失敗しました。再度お試しください。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	messageID, parseErr := snowflake.Parse(panel.MessageID)
+	if parseErr != nil || messageID == 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("保存されたメッセージIDが無効です。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+	channelID, parseErr := snowflake.Parse(panel.ChannelID)
+	if parseErr != nil || channelID == 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("保存されたチャンネルIDが無効です。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	message, err := event.Client().Rest().GetMessage(channelID, messageID)
+	if err != nil || message == nil {
+		logger.Error().Err(err).Int("panel_id", panel.ID).Msg("failed to fetch role panel message for deletion")
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("ロールパネルのメッセージ取得に失敗しました。既に削除されている可能性があります。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	_, hasMenu := findRolePanelMenu(message)
+	if !hasMenu {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("この記録はロールパネルではありません。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	title := panel.Title
+	if title == "" && len(message.Embeds) > 0 && message.Embeds[0].Title != "" {
+		title = message.Embeds[0].Title
+	}
+	if title == "" {
+		title = rolePanelDefaultTitle
+	}
+
+	if err := event.Client().Rest().DeleteMessage(channelID, messageID); err != nil {
+		logger.Error().Err(err).Int("panel_id", panel.ID).Msg("failed to delete role panel message")
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("ロールパネルの削除に失敗しました。権限を確認してください。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
+	if _, err := rolePanels.DeletePanelByID(context.Background(), *guildID, panel.ID); err != nil {
+		logger.Warn().Err(err).Int("panel_id", panel.ID).Msg("failed to delete role panel record")
+	}
+
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent(fmt.Sprintf("ロールパネル「%s」を削除しました。", title)).
+		SetEphemeral(true).
+		Build())
 }
 
 func allowRolePanel(cfg config.Config, guildID snowflake.ID) (bool, string) {
@@ -507,7 +646,6 @@ func buildRolePanelOptions(existing []discord.StringSelectMenuOption, addRoles [
 
 func normalizeRolePanelOptions(existing []discord.StringSelectMenuOption) ([]discord.StringSelectMenuOption, map[string]struct{}) {
 	options := make([]discord.StringSelectMenuOption, 0, rolePanelMaxOptions)
-	options = append(options, rolePanelPlaceholderOption())
 	values := make(map[string]struct{}, len(existing))
 	for _, option := range existing {
 		if option.Value == rolePanelPlaceholderValue {
@@ -575,49 +713,15 @@ func roleMentions(roles []discord.Role) []string {
 	return mentions
 }
 
-func parseRoleIDs(raw string) ([]snowflake.ID, []string) {
-	if strings.TrimSpace(raw) == "" {
-		return nil, nil
-	}
-	parts := strings.Split(raw, ",")
-	ids := make([]snowflake.ID, 0, len(parts))
-	invalid := make([]string, 0)
-	seen := make(map[snowflake.ID]struct{}, len(parts))
-	for _, part := range parts {
-		trimmed := strings.TrimSpace(part)
-		if trimmed == "" {
+func roleIDsFromOptions(roles []discord.Role) []snowflake.ID {
+	ids := make([]snowflake.ID, 0, len(roles))
+	for _, role := range roles {
+		if role.ID == 0 {
 			continue
 		}
-		id, ok := parseRoleIDToken(trimmed)
-		if !ok || id == 0 {
-			invalid = append(invalid, trimmed)
-			continue
-		}
-		if _, exists := seen[id]; exists {
-			continue
-		}
-		seen[id] = struct{}{}
-		ids = append(ids, id)
+		ids = append(ids, role.ID)
 	}
-	return ids, invalid
-}
-
-func parseRoleIDToken(token string) (snowflake.ID, bool) {
-	var digits strings.Builder
-	for _, r := range token {
-		if r >= '0' && r <= '9' {
-			digits.WriteRune(r)
-		}
-	}
-	if digits.Len() == 0 {
-		return 0, false
-	}
-	value := digits.String()
-	id, err := snowflake.Parse(value)
-	if err != nil || id == 0 {
-		return 0, false
-	}
-	return id, true
+	return ids
 }
 
 func filterRolePanelValues(values []string) []string {

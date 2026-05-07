@@ -18,6 +18,8 @@ type Tx struct {
 	MarketState *MarketStateClient
 	// PriceHistory is the client for interacting with the PriceHistory builders.
 	PriceHistory *PriceHistoryClient
+	// RolePanel is the client for interacting with the RolePanel builders.
+	RolePanel *RolePanelClient
 	// TransactionLog is the client for interacting with the TransactionLog builders.
 	TransactionLog *TransactionLogClient
 	// User is the client for interacting with the User builders.
@@ -156,6 +158,7 @@ func (tx *Tx) init() {
 	tx.Guild = NewGuildClient(tx.config)
 	tx.MarketState = NewMarketStateClient(tx.config)
 	tx.PriceHistory = NewPriceHistoryClient(tx.config)
+	tx.RolePanel = NewRolePanelClient(tx.config)
 	tx.TransactionLog = NewTransactionLogClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }

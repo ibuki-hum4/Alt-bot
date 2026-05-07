@@ -56,6 +56,41 @@ var (
 		Columns:    PriceHistoriesColumns,
 		PrimaryKey: []*schema.Column{PriceHistoriesColumns[0]},
 	}
+	// RolePanelsColumns holds the columns for the "role_panels" table.
+	RolePanelsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "guild_id", Type: field.TypeString},
+		{Name: "channel_id", Type: field.TypeString},
+		{Name: "message_id", Type: field.TypeString},
+		{Name: "title", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "role_ids", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// RolePanelsTable holds the schema information for the "role_panels" table.
+	RolePanelsTable = &schema.Table{
+		Name:       "role_panels",
+		Columns:    RolePanelsColumns,
+		PrimaryKey: []*schema.Column{RolePanelsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rolepanel_guild_id_message_id",
+				Unique:  true,
+				Columns: []*schema.Column{RolePanelsColumns[1], RolePanelsColumns[3]},
+			},
+			{
+				Name:    "rolepanel_guild_id_title",
+				Unique:  false,
+				Columns: []*schema.Column{RolePanelsColumns[1], RolePanelsColumns[4]},
+			},
+			{
+				Name:    "rolepanel_guild_id_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{RolePanelsColumns[1], RolePanelsColumns[8]},
+			},
+		},
+	}
 	// TransactionLogsColumns holds the columns for the "transaction_logs" table.
 	TransactionLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -126,6 +161,7 @@ var (
 		GuildsTable,
 		MarketStatesTable,
 		PriceHistoriesTable,
+		RolePanelsTable,
 		TransactionLogsTable,
 		UsersTable,
 	}

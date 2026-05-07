@@ -7,6 +7,7 @@ import (
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/predicate"
 	"alt-bot/ent/pricehistory"
+	"alt-bot/ent/rolepanel"
 	"alt-bot/ent/transactionlog"
 	"alt-bot/ent/user"
 	"context"
@@ -31,6 +32,7 @@ const (
 	TypeGuild          = "Guild"
 	TypeMarketState    = "MarketState"
 	TypePriceHistory   = "PriceHistory"
+	TypeRolePanel      = "RolePanel"
 	TypeTransactionLog = "TransactionLog"
 	TypeUser           = "User"
 )
@@ -2152,6 +2154,710 @@ func (m *PriceHistoryMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PriceHistoryMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PriceHistory edge %s", name)
+}
+
+// RolePanelMutation represents an operation that mutates the RolePanel nodes in the graph.
+type RolePanelMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	guild_id      *string
+	channel_id    *string
+	message_id    *string
+	title         *string
+	description   *string
+	role_ids      *string
+	created_at    *time.Time
+	updated_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*RolePanel, error)
+	predicates    []predicate.RolePanel
+}
+
+var _ ent.Mutation = (*RolePanelMutation)(nil)
+
+// rolepanelOption allows management of the mutation configuration using functional options.
+type rolepanelOption func(*RolePanelMutation)
+
+// newRolePanelMutation creates new mutation for the RolePanel entity.
+func newRolePanelMutation(c config, op Op, opts ...rolepanelOption) *RolePanelMutation {
+	m := &RolePanelMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRolePanel,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRolePanelID sets the ID field of the mutation.
+func withRolePanelID(id int) rolepanelOption {
+	return func(m *RolePanelMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RolePanel
+		)
+		m.oldValue = func(ctx context.Context) (*RolePanel, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RolePanel.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRolePanel sets the old RolePanel of the mutation.
+func withRolePanel(node *RolePanel) rolepanelOption {
+	return func(m *RolePanelMutation) {
+		m.oldValue = func(context.Context) (*RolePanel, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RolePanelMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RolePanelMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RolePanelMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RolePanelMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RolePanel.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetGuildID sets the "guild_id" field.
+func (m *RolePanelMutation) SetGuildID(s string) {
+	m.guild_id = &s
+}
+
+// GuildID returns the value of the "guild_id" field in the mutation.
+func (m *RolePanelMutation) GuildID() (r string, exists bool) {
+	v := m.guild_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGuildID returns the old "guild_id" field's value of the RolePanel entity.
+// If the RolePanel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RolePanelMutation) OldGuildID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGuildID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGuildID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGuildID: %w", err)
+	}
+	return oldValue.GuildID, nil
+}
+
+// ResetGuildID resets all changes to the "guild_id" field.
+func (m *RolePanelMutation) ResetGuildID() {
+	m.guild_id = nil
+}
+
+// SetChannelID sets the "channel_id" field.
+func (m *RolePanelMutation) SetChannelID(s string) {
+	m.channel_id = &s
+}
+
+// ChannelID returns the value of the "channel_id" field in the mutation.
+func (m *RolePanelMutation) ChannelID() (r string, exists bool) {
+	v := m.channel_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChannelID returns the old "channel_id" field's value of the RolePanel entity.
+// If the RolePanel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RolePanelMutation) OldChannelID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannelID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannelID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelID: %w", err)
+	}
+	return oldValue.ChannelID, nil
+}
+
+// ResetChannelID resets all changes to the "channel_id" field.
+func (m *RolePanelMutation) ResetChannelID() {
+	m.channel_id = nil
+}
+
+// SetMessageID sets the "message_id" field.
+func (m *RolePanelMutation) SetMessageID(s string) {
+	m.message_id = &s
+}
+
+// MessageID returns the value of the "message_id" field in the mutation.
+func (m *RolePanelMutation) MessageID() (r string, exists bool) {
+	v := m.message_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMessageID returns the old "message_id" field's value of the RolePanel entity.
+// If the RolePanel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RolePanelMutation) OldMessageID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMessageID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMessageID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMessageID: %w", err)
+	}
+	return oldValue.MessageID, nil
+}
+
+// ResetMessageID resets all changes to the "message_id" field.
+func (m *RolePanelMutation) ResetMessageID() {
+	m.message_id = nil
+}
+
+// SetTitle sets the "title" field.
+func (m *RolePanelMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *RolePanelMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the RolePanel entity.
+// If the RolePanel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RolePanelMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *RolePanelMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *RolePanelMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *RolePanelMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the RolePanel entity.
+// If the RolePanel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RolePanelMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *RolePanelMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetRoleIds sets the "role_ids" field.
+func (m *RolePanelMutation) SetRoleIds(s string) {
+	m.role_ids = &s
+}
+
+// RoleIds returns the value of the "role_ids" field in the mutation.
+func (m *RolePanelMutation) RoleIds() (r string, exists bool) {
+	v := m.role_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRoleIds returns the old "role_ids" field's value of the RolePanel entity.
+// If the RolePanel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RolePanelMutation) OldRoleIds(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRoleIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRoleIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRoleIds: %w", err)
+	}
+	return oldValue.RoleIds, nil
+}
+
+// ResetRoleIds resets all changes to the "role_ids" field.
+func (m *RolePanelMutation) ResetRoleIds() {
+	m.role_ids = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RolePanelMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RolePanelMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RolePanel entity.
+// If the RolePanel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RolePanelMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RolePanelMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RolePanelMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RolePanelMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RolePanel entity.
+// If the RolePanel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RolePanelMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RolePanelMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the RolePanelMutation builder.
+func (m *RolePanelMutation) Where(ps ...predicate.RolePanel) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RolePanelMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RolePanelMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RolePanel, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RolePanelMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RolePanelMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RolePanel).
+func (m *RolePanelMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RolePanelMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.guild_id != nil {
+		fields = append(fields, rolepanel.FieldGuildID)
+	}
+	if m.channel_id != nil {
+		fields = append(fields, rolepanel.FieldChannelID)
+	}
+	if m.message_id != nil {
+		fields = append(fields, rolepanel.FieldMessageID)
+	}
+	if m.title != nil {
+		fields = append(fields, rolepanel.FieldTitle)
+	}
+	if m.description != nil {
+		fields = append(fields, rolepanel.FieldDescription)
+	}
+	if m.role_ids != nil {
+		fields = append(fields, rolepanel.FieldRoleIds)
+	}
+	if m.created_at != nil {
+		fields = append(fields, rolepanel.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rolepanel.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RolePanelMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rolepanel.FieldGuildID:
+		return m.GuildID()
+	case rolepanel.FieldChannelID:
+		return m.ChannelID()
+	case rolepanel.FieldMessageID:
+		return m.MessageID()
+	case rolepanel.FieldTitle:
+		return m.Title()
+	case rolepanel.FieldDescription:
+		return m.Description()
+	case rolepanel.FieldRoleIds:
+		return m.RoleIds()
+	case rolepanel.FieldCreatedAt:
+		return m.CreatedAt()
+	case rolepanel.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RolePanelMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rolepanel.FieldGuildID:
+		return m.OldGuildID(ctx)
+	case rolepanel.FieldChannelID:
+		return m.OldChannelID(ctx)
+	case rolepanel.FieldMessageID:
+		return m.OldMessageID(ctx)
+	case rolepanel.FieldTitle:
+		return m.OldTitle(ctx)
+	case rolepanel.FieldDescription:
+		return m.OldDescription(ctx)
+	case rolepanel.FieldRoleIds:
+		return m.OldRoleIds(ctx)
+	case rolepanel.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rolepanel.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown RolePanel field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RolePanelMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rolepanel.FieldGuildID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGuildID(v)
+		return nil
+	case rolepanel.FieldChannelID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannelID(v)
+		return nil
+	case rolepanel.FieldMessageID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMessageID(v)
+		return nil
+	case rolepanel.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case rolepanel.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case rolepanel.FieldRoleIds:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRoleIds(v)
+		return nil
+	case rolepanel.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rolepanel.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RolePanel field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RolePanelMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RolePanelMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RolePanelMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown RolePanel numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RolePanelMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RolePanelMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RolePanelMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown RolePanel nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RolePanelMutation) ResetField(name string) error {
+	switch name {
+	case rolepanel.FieldGuildID:
+		m.ResetGuildID()
+		return nil
+	case rolepanel.FieldChannelID:
+		m.ResetChannelID()
+		return nil
+	case rolepanel.FieldMessageID:
+		m.ResetMessageID()
+		return nil
+	case rolepanel.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case rolepanel.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case rolepanel.FieldRoleIds:
+		m.ResetRoleIds()
+		return nil
+	case rolepanel.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rolepanel.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RolePanel field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RolePanelMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RolePanelMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RolePanelMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RolePanelMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RolePanelMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RolePanelMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RolePanelMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RolePanel unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RolePanelMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RolePanel edge %s", name)
 }
 
 // TransactionLogMutation represents an operation that mutates the TransactionLog nodes in the graph.

@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: alt-bot-config
-  namespace: alt-bot
+  name: ibuki-alt-bot-config
+  namespace: ibuki-alt-bot
 data:
   ALTBOT_LOG_LEVEL: "info"
   ALTBOT_TIME_ZONE: "Asia/Tokyo"

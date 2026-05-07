@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: alt-bot
-  namespace: alt-bot
+  name: ibuki-alt-bot
+  namespace: ibuki-alt-bot
   labels:
     app: alt-bot
 spec:

@@ -1,8 +1,8 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: alt-bot-pdb
-  namespace: alt-bot
+  name: ibuki-alt-bot-pdb
+  namespace: ibuki- alt-bot
 spec:
   maxUnavailable: 0
   selector:

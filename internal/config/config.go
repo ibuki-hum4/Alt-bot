@@ -29,12 +29,25 @@ type Config struct {
 
 	CasinoRTPBlackjack float64 `mapstructure:"casino_rtp_blackjack"`
 	CasinoRTPChinchiro float64 `mapstructure:"casino_rtp_chinchiro"`
-	CasinoRTPRoulette  float64 `mapstructure:"casino_rtp_roulette"`
-	CasinoRTPSlot      float64 `mapstructure:"casino_rtp_slot"`
 	CasinoRTPPoker     float64 `mapstructure:"casino_rtp_poker"`
+	CasinoRTPMines     float64 `mapstructure:"casino_rtp_mines"`
 
-	RolePanelEnabled  bool            `mapstructure:"role_panel_enabled"`
+	MinesBombCount     int     `mapstructure:"mines_bomb_count"`
+	MinesInitialSafePC float64 `mapstructure:"mines_initial_safe_pc"`
+
 	EconomyEnabled    bool            `mapstructure:"economy_enabled"`
+	CasinoEnabled     bool            `mapstructure:"casino_enabled"`
+	CryptoEnabled     bool            `mapstructure:"crypto_enabled"`
+	PokerEnabled      bool            `mapstructure:"poker_enabled"`
+	RolePanelEnabled  bool            `mapstructure:"role_panel_enabled"`
+	ModEnabled        bool            `mapstructure:"mod_enabled"`
+	DailyProfitCap    int64           `mapstructure:"daily_profit_cap"`
+	MaxBetAmount      int64           `mapstructure:"max_bet_amount"`
+	MaxBetPercent     float64         `mapstructure:"max_bet_percent"`
+	CashoutFeePercent float64         `mapstructure:"cashout_fee_percent"`
+	CasinoFeePercent  float64         `mapstructure:"casino_fee_percent"`
+	HighValueTaxBase  int64           `mapstructure:"high_value_tax_base"`
+	HighValueTaxRate  float64         `mapstructure:"high_value_tax_rate"`
 	RolePanelGuildIDs []string        `mapstructure:"role_panel_guild_ids"`
 	RolePanelRoles    []RolePanelRole `mapstructure:"role_panel_roles"`
 
@@ -110,20 +123,56 @@ func Load() (Config, error) {
 	if err := v.BindEnv("casino_rtp_chinchiro"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env casino_rtp_chinchiro: %w", err)
 	}
-	if err := v.BindEnv("casino_rtp_roulette"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env casino_rtp_roulette: %w", err)
-	}
-	if err := v.BindEnv("casino_rtp_slot"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env casino_rtp_slot: %w", err)
-	}
 	if err := v.BindEnv("casino_rtp_poker"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env casino_rtp_poker: %w", err)
+	}
+	if err := v.BindEnv("casino_rtp_mines"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env casino_rtp_mines: %w", err)
+	}
+	if err := v.BindEnv("casino_enabled"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env casino_enabled: %w", err)
+	}
+	if err := v.BindEnv("crypto_enabled"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env crypto_enabled: %w", err)
+	}
+	if err := v.BindEnv("poker_enabled"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env poker_enabled: %w", err)
+	}
+	if err := v.BindEnv("mines_bomb_count"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env mines_bomb_count: %w", err)
+	}
+	if err := v.BindEnv("mines_initial_safe_pc"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env mines_initial_safe_pc: %w", err)
 	}
 	if err := v.BindEnv("role_panel_enabled"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env role_panel_enabled: %w", err)
 	}
 	if err := v.BindEnv("economy_enabled"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env economy_enabled: %w", err)
+	}
+	if err := v.BindEnv("mod_enabled"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env mod_enabled: %w", err)
+	}
+	if err := v.BindEnv("daily_profit_cap"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env daily_profit_cap: %w", err)
+	}
+	if err := v.BindEnv("max_bet_amount"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env max_bet_amount: %w", err)
+	}
+	if err := v.BindEnv("max_bet_percent"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env max_bet_percent: %w", err)
+	}
+	if err := v.BindEnv("cashout_fee_percent"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env cashout_fee_percent: %w", err)
+	}
+	if err := v.BindEnv("casino_fee_percent"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env casino_fee_percent: %w", err)
+	}
+	if err := v.BindEnv("high_value_tax_base"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env high_value_tax_base: %w", err)
+	}
+	if err := v.BindEnv("high_value_tax_rate"); err != nil {
+		return Config{}, fmt.Errorf("failed to bind env high_value_tax_rate: %w", err)
 	}
 	if err := v.BindEnv("role_panel_guild_ids"); err != nil {
 		return Config{}, fmt.Errorf("failed to bind env role_panel_guild_ids: %w", err)
@@ -145,13 +194,25 @@ func Load() (Config, error) {
 	v.SetDefault("component_window_seconds", 4)
 	v.SetDefault("max_component_per_window", 12)
 	v.SetDefault("chart_max_concurrent", 2)
-	v.SetDefault("casino_rtp_blackjack", 0.959)
-	v.SetDefault("casino_rtp_chinchiro", 0.959)
-	v.SetDefault("casino_rtp_roulette", 0.959)
-	v.SetDefault("casino_rtp_slot", 0.959)
-	v.SetDefault("casino_rtp_poker", 0.959)
+	v.SetDefault("casino_rtp_blackjack", 0.945)
+	v.SetDefault("casino_rtp_chinchiro", 0.940)
+	v.SetDefault("casino_rtp_poker", 0.935)
+	v.SetDefault("casino_rtp_mines", 0.885)
+	v.SetDefault("casino_enabled", false)
+	v.SetDefault("crypto_enabled", true)
+	v.SetDefault("poker_enabled", false)
+	v.SetDefault("mines_bomb_count", 4)         // 爆弾数を3→4に増加
+	v.SetDefault("mines_initial_safe_pc", 0.88) // 初期安全率88%
+	v.SetDefault("mod_enabled", false)
 	v.SetDefault("role_panel_enabled", false)
 	v.SetDefault("economy_enabled", false)
+	v.SetDefault("daily_profit_cap", int64(5000000))     // 500万円（5M）
+	v.SetDefault("max_bet_amount", int64(1000000))       // 100万円（1M）
+	v.SetDefault("max_bet_percent", 0.1)                 // 10%
+	v.SetDefault("cashout_fee_percent", 0.05)            // 5% (キャッシュアウト手数料)
+	v.SetDefault("casino_fee_percent", 0.01)             // 1% (カジノ手数料)
+	v.SetDefault("high_value_tax_base", int64(10000))    // 1万円以上で課税
+	v.SetDefault("high_value_tax_rate", 0.15)            // 15% (基本税率)
 
 	if err := v.ReadInConfig(); err != nil {
 		_, _ = err.(viper.ConfigFileNotFoundError)

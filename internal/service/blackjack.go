@@ -3,10 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"alt-bot/ent"
-	"alt-bot/ent/user"
 )
 
 func (s *EconomyService) BlackjackPlaceBet(ctx context.Context, discordID string, bet int64) (int64, error) {
@@ -41,25 +39,9 @@ func (s *EconomyService) blackjackAdjustBalance(ctx context.Context, discordID s
 	var balance int64
 	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
-		u, err := tx.User.Query().
-			Where(user.DiscordID(discordID)).
-			ForUpdate().
-			Only(ctx)
+		u, err := s.lockOrCreateUserForUpdateTx(ctx, tx, discordID, "blackjack")
 		if err != nil {
-			if ent.IsNotFound(err) {
-				u, err = tx.User.Create().
-					SetDiscordID(discordID).
-					SetBalance(0).
-					SetCryptoBalance(0).
-					SetXp(0).
-					SetWorkEndAt(time.Unix(0, 0).UTC()).
-					Save(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to create user in blackjack: %w", err)
-				}
-			} else {
-				return fmt.Errorf("failed to load user in blackjack: %w", err)
-			}
+			return err
 		}
 
 		if delta < 0 && u.Balance < -delta {

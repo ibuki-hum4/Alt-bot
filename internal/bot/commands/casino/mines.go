@@ -25,7 +25,7 @@ const (
 	minesCols         = 5
 	minesTotalCells   = minesRows * minesCols
 	minesCashoutIndex = minesTotalCells - 1
-	minesDefaultCount = 3
+	minesDefaultCount = 4
 )
 
 type minesSession struct {
@@ -49,13 +49,6 @@ var (
 )
 
 func handleMines(event *events.ApplicationCommandInteractionCreate, guildID snowflake.ID, economy *service.EconomyService) {
-	// 経済機能を無効化: 即時応答して何もしない
-	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent("経済機能は現在無効化されています。操作は行えません。").
-		SetEphemeral(true).
-		Build())
-	return
-
 	bet := int64(event.SlashCommandInteractionData().Int("amount"))
 	if bet <= 0 {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -112,12 +105,6 @@ func handleMines(event *events.ApplicationCommandInteractionCreate, guildID snow
 }
 
 func HandleMinesComponent(economy *service.EconomyService, event *events.ComponentInteractionCreate) {
-	// 経済機能無効時の早期応答
-	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent("経済機能は現在無効化されています。操作は行えません。").
-		SetEphemeral(true).
-		Build())
-	return
 	parts := strings.Split(event.Data.CustomID(), ":")
 	if len(parts) < 3 || parts[0] != "mines" {
 		return
@@ -202,7 +189,7 @@ func HandleMinesComponent(economy *service.EconomyService, event *events.Compone
 		delete(minesSessions, sessionID)
 		minesMu.Unlock()
 		_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().
-			SetEmbeds(*buildMinesEmbed(*s, "Mines BOOM", "地雷を踏みました。" )).
+			SetEmbeds(*buildMinesEmbed(*s, "Mines BOOM", "地雷を踏みました。")).
 			SetContainerComponents(buildMinesComponents(*s, true)...).
 			Build())
 		return
@@ -213,7 +200,7 @@ func HandleMinesComponent(economy *service.EconomyService, event *events.Compone
 	minesMu.Unlock()
 
 	_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().
-		SetEmbeds(*buildMinesEmbed(updated, "Mines", "安全マスを開きました。" )).
+		SetEmbeds(*buildMinesEmbed(updated, "Mines", "安全マスを開きました。")).
 		SetContainerComponents(buildMinesComponents(updated, false)...).
 		Build())
 }
@@ -316,8 +303,8 @@ func minesMultiplier(safeCount int) float64 {
 	if safeCount <= 0 {
 		return 1.0
 	}
-	m := 1.0 + float64(safeCount)*0.25
-	return math.Min(m, 5.0)
+	m := 1.0 + float64(safeCount)*0.28
+	return math.Min(m, 8.0)
 }
 
 func minesPayout(bet int64, safeCount int) int64 {

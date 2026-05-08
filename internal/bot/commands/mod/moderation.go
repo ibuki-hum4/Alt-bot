@@ -16,6 +16,23 @@ func HandleModeration(event *events.ApplicationCommandInteractionCreate) {
 		return
 	}
 
+	// Check admin permission
+	member := event.Member()
+	if member == nil {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("メンバー情報を取得できません。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+	if member.Permissions&discord.PermissionManageGuild == 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("このコマンドはサーバー管理者のみが実行できます。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
 	data := event.SlashCommandInteractionData()
 	if data.SubCommandName == nil {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().

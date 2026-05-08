@@ -83,6 +83,7 @@ func registerLifecycle(lc fx.Lifecycle, client dbot.Client, handlers *ibot.Handl
 			if err := client.OpenGateway(ctx); err != nil {
 				return fmt.Errorf("failed to open discord gateway: %w", err)
 			}
+			logFeatureFlags(logger, handlers)
 			handlers.StartNewsLoop(client)
 			logger.Info().Msg("bot started")
 			return nil
@@ -94,4 +95,23 @@ func registerLifecycle(lc fx.Lifecycle, client dbot.Client, handlers *ibot.Handl
 			return nil
 		},
 	})
+}
+
+func logFeatureFlags(logger zerolog.Logger, handlers *ibot.Handlers) {
+	cfg := handlers.Config()
+	logger.Info().Msgf(
+			"[Feature Flags]\nEconomy: %s\nCasino: %s\nCrypto: %s\nRolePanel: %s\nModeration: %s",
+		featureState(cfg.EconomyEnabled),
+		featureState(cfg.CasinoEnabled),
+		featureState(cfg.CryptoEnabled),
+		featureState(cfg.RolePanelEnabled),
+		featureState(cfg.ModEnabled),
+	)
+}
+
+func featureState(enabled bool) string {
+	if enabled {
+		return "enabled"
+	}
+	return "disabled"
 }

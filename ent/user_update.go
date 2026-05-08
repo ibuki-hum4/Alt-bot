@@ -119,6 +119,41 @@ func (_u *UserUpdate) SetNillableWorkEndAt(v *time.Time) *UserUpdate {
 	return _u
 }
 
+// SetDailyProfitEarned sets the "daily_profit_earned" field.
+func (_u *UserUpdate) SetDailyProfitEarned(v int64) *UserUpdate {
+	_u.mutation.ResetDailyProfitEarned()
+	_u.mutation.SetDailyProfitEarned(v)
+	return _u
+}
+
+// SetNillableDailyProfitEarned sets the "daily_profit_earned" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableDailyProfitEarned(v *int64) *UserUpdate {
+	if v != nil {
+		_u.SetDailyProfitEarned(*v)
+	}
+	return _u
+}
+
+// AddDailyProfitEarned adds value to the "daily_profit_earned" field.
+func (_u *UserUpdate) AddDailyProfitEarned(v int64) *UserUpdate {
+	_u.mutation.AddDailyProfitEarned(v)
+	return _u
+}
+
+// SetLastDailyResetAt sets the "last_daily_reset_at" field.
+func (_u *UserUpdate) SetLastDailyResetAt(v time.Time) *UserUpdate {
+	_u.mutation.SetLastDailyResetAt(v)
+	return _u
+}
+
+// SetNillableLastDailyResetAt sets the "last_daily_reset_at" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableLastDailyResetAt(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetLastDailyResetAt(*v)
+	}
+	return _u
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -196,6 +231,15 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.WorkEndAt(); ok {
 		_spec.SetField(user.FieldWorkEndAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DailyProfitEarned(); ok {
+		_spec.SetField(user.FieldDailyProfitEarned, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedDailyProfitEarned(); ok {
+		_spec.AddField(user.FieldDailyProfitEarned, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.LastDailyResetAt(); ok {
+		_spec.SetField(user.FieldLastDailyResetAt, field.TypeTime, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -308,6 +352,41 @@ func (_u *UserUpdateOne) SetNillableWorkEndAt(v *time.Time) *UserUpdateOne {
 	return _u
 }
 
+// SetDailyProfitEarned sets the "daily_profit_earned" field.
+func (_u *UserUpdateOne) SetDailyProfitEarned(v int64) *UserUpdateOne {
+	_u.mutation.ResetDailyProfitEarned()
+	_u.mutation.SetDailyProfitEarned(v)
+	return _u
+}
+
+// SetNillableDailyProfitEarned sets the "daily_profit_earned" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableDailyProfitEarned(v *int64) *UserUpdateOne {
+	if v != nil {
+		_u.SetDailyProfitEarned(*v)
+	}
+	return _u
+}
+
+// AddDailyProfitEarned adds value to the "daily_profit_earned" field.
+func (_u *UserUpdateOne) AddDailyProfitEarned(v int64) *UserUpdateOne {
+	_u.mutation.AddDailyProfitEarned(v)
+	return _u
+}
+
+// SetLastDailyResetAt sets the "last_daily_reset_at" field.
+func (_u *UserUpdateOne) SetLastDailyResetAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetLastDailyResetAt(v)
+	return _u
+}
+
+// SetNillableLastDailyResetAt sets the "last_daily_reset_at" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableLastDailyResetAt(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetLastDailyResetAt(*v)
+	}
+	return _u
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
@@ -415,6 +494,15 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.WorkEndAt(); ok {
 		_spec.SetField(user.FieldWorkEndAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DailyProfitEarned(); ok {
+		_spec.SetField(user.FieldDailyProfitEarned, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedDailyProfitEarned(); ok {
+		_spec.AddField(user.FieldDailyProfitEarned, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.LastDailyResetAt(); ok {
+		_spec.SetField(user.FieldLastDailyResetAt, field.TypeTime, value)
 	}
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues

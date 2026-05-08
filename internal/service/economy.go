@@ -93,6 +93,15 @@ func (e *InsufficientALTError) Error() string {
 	return fmt.Sprintf("insufficient alt: need=%d have=%d", e.Need, e.Have)
 }
 
+type BetLimitExceededError struct {
+	Requested int64
+	Limit     int64
+}
+
+func (e *BetLimitExceededError) Error() string {
+	return fmt.Sprintf("bet exceeds limit: requested=%d limit=%d", e.Requested, e.Limit)
+}
+
 type workRule struct {
 	minReward int64
 	maxReward int64
@@ -103,6 +112,7 @@ type workRule struct {
 type EconomyService struct {
 	client *ent.Client
 	logger zerolog.Logger
+	cfg    config.Config
 	rules  map[WorkDifficulty]workRule
 	rand   *rand.Rand
 	news   *NewsEngine
@@ -126,9 +136,8 @@ type EconomyService struct {
 
 	casinoRTPBlackjack float64
 	casinoRTPChinchiro float64
-	casinoRTPRoulette  float64
-	casinoRTPSlot      float64
 	casinoRTPPoker     float64
+	casinoRTPMines     float64
 }
 
 const serviceTimeout = 5 * time.Second
@@ -181,15 +190,15 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 		passiveMax = 1.004
 	}
 	meanReversion := clampFloat64(cfg.MarketMeanReversion, 0.18, 0.0, 1.0)
-	casinoRTPBlackjack := clampFloat64(cfg.CasinoRTPBlackjack, 0.959, 0.5, 1.1)
-	casinoRTPChinchiro := clampFloat64(cfg.CasinoRTPChinchiro, 0.959, 0.5, 1.1)
-	casinoRTPRoulette := clampFloat64(cfg.CasinoRTPRoulette, 0.959, 0.5, 1.1)
-	casinoRTPSlot := clampFloat64(cfg.CasinoRTPSlot, 0.959, 0.5, 1.1)
-	casinoRTPPoker := clampFloat64(cfg.CasinoRTPPoker, 0.959, 0.5, 1.1)
+	casinoRTPBlackjack := clampFloat64(cfg.CasinoRTPBlackjack, 0.945, 0.5, 1.1)
+	casinoRTPChinchiro := clampFloat64(cfg.CasinoRTPChinchiro, 0.940, 0.5, 1.1)
+	casinoRTPPoker := clampFloat64(cfg.CasinoRTPPoker, 0.935, 0.5, 1.1)
+	casinoRTPMines := clampFloat64(cfg.CasinoRTPMines, 0.885, 0.5, 1.1)
 
 	svc := &EconomyService{
 		client: client,
 		logger: logger,
+		cfg:    cfg,
 		rules: map[WorkDifficulty]workRule{
 			WorkDifficultyEasy: {
 				minReward: 30,
@@ -219,9 +228,8 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 		passiveMeanReversion: meanReversion,
 		casinoRTPBlackjack:   casinoRTPBlackjack,
 		casinoRTPChinchiro:   casinoRTPChinchiro,
-		casinoRTPRoulette:    casinoRTPRoulette,
-		casinoRTPSlot:        casinoRTPSlot,
 		casinoRTPPoker:       casinoRTPPoker,
+		casinoRTPMines:       casinoRTPMines,
 	}
 
 	marketCtx, marketCancel := context.WithTimeout(context.Background(), serviceTimeout)
@@ -305,6 +313,204 @@ func (s *EconomyService) EnsureUser(ctx context.Context, discordID string) (*ent
 		return nil, fmt.Errorf("failed to create user: %w", createErr)
 	}
 	return created, nil
+}
+
+// MaxBetForUser calculates the maximum allowed bet for a user based on balance and config.
+func (s *EconomyService) MaxBetForUser(userBalance int64) int64 {
+	if s.cfg.MaxBetAmount <= 0 && s.cfg.MaxBetPercent <= 0 {
+		// No limits configured
+		return userBalance
+	}
+
+	limits := make([]int64, 0, 2)
+
+	if s.cfg.MaxBetAmount > 0 {
+		limits = append(limits, s.cfg.MaxBetAmount)
+	}
+
+	if s.cfg.MaxBetPercent > 0 && s.cfg.MaxBetPercent <= 1.0 {
+		percentLimit := int64(float64(userBalance) * s.cfg.MaxBetPercent)
+		limits = append(limits, percentLimit)
+	}
+
+	if len(limits) == 0 {
+		return userBalance
+	}
+
+	minLimit := limits[0]
+	for _, l := range limits[1:] {
+		if l < minLimit {
+			minLimit = l
+		}
+	}
+
+	return minLimit
+}
+
+// CalculateCashoutFee computes fee for cashing out (converting ALT to Yen).
+// Returns (fee, afterFee).
+func (s *EconomyService) CalculateCashoutFee(beforeFeeAmount int64) (int64, int64) {
+	if s.cfg.CashoutFeePercent <= 0 || beforeFeeAmount <= 0 {
+		return 0, beforeFeeAmount
+	}
+
+	fee := int64(float64(beforeFeeAmount) * s.cfg.CashoutFeePercent)
+	if fee < 1 {
+		fee = 1 // Minimum 1 yen
+	}
+	return fee, beforeFeeAmount - fee
+}
+
+// CalculateCasinoFee computes a small fee for entering a casino game.
+// Returns (fee, afterFee).
+func (s *EconomyService) CalculateCasinoFee(beforeFeeAmount int64) (int64, int64) {
+	if s.cfg.CasinoFeePercent <= 0 || beforeFeeAmount <= 0 {
+		return 0, beforeFeeAmount
+	}
+
+	fee := int64(float64(beforeFeeAmount) * s.cfg.CasinoFeePercent)
+	if fee < 1 {
+		fee = 1 // Minimum 1 yen
+	}
+	return fee, beforeFeeAmount - fee
+}
+
+// CalculateHighValueTax computes stepped tax on large transfers.
+// Returns (tax, afterTax).
+func (s *EconomyService) CalculateHighValueTax(amount int64) (int64, int64) {
+	if amount <= 0 {
+		return 0, amount
+	}
+
+	var rateBPS int64
+	switch {
+	case amount >= 1_000_000:
+		rateBPS = 2500
+	case amount >= 100_000:
+		rateBPS = 2000
+	case amount >= 10_000:
+		rateBPS = 1500
+	default:
+		return 0, amount
+	}
+
+	tax := (amount * rateBPS) / 10_000
+	if tax < 1 {
+		tax = 1 // Minimum 1 yen
+	}
+	return tax, amount - tax
+}
+
+// DailyProfitCapError indicates user exceeded daily profit limit
+type DailyProfitCapError struct {
+	Cap       int64
+	Earned    int64
+	Requested int64
+}
+
+func (e *DailyProfitCapError) Error() string {
+	return fmt.Sprintf("daily profit limit exceeded: cap=%d earned=%d requested=%d remaining=%d",
+		e.Cap, e.Earned, e.Requested, e.Cap-e.Earned)
+}
+
+// CanAwardProfitToday checks if profit can be awarded and updates daily earned amount.
+// Returns (allowed bool, actualCap int64, error).
+func (s *EconomyService) CanAwardProfitToday(ctx context.Context, discordID string, profit int64) (bool, error) {
+	ctx, cancel := withServiceTimeout(ctx)
+	defer cancel()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	cap := s.cfg.DailyProfitCap
+	if cap <= 0 {
+		// No limit if cap is 0 or negative
+		return true, nil
+	}
+
+	if profit < 0 {
+		// Negative profit (losses) don't count against the limit
+		return true, nil
+	}
+
+	now := time.Now().UTC()
+
+	var allowed bool
+	var earned int64
+	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
+		u, err := tx.User.Query().
+			Where(user.DiscordID(discordID)).
+			ForUpdate().
+			Only(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				u, err = tx.User.Create().
+					SetDiscordID(discordID).
+					SetBalance(0).
+					SetCryptoBalance(0).
+					SetXp(0).
+					SetWorkEndAt(time.Unix(0, 0).UTC()).
+					SetDailyProfitEarned(0).
+					SetLastDailyResetAt(now).
+					Save(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to create user: %w", err)
+				}
+			} else {
+				return fmt.Errorf("failed to query user: %w", err)
+			}
+		}
+
+		// Check if we're on a new day
+		lastReset := u.LastDailyResetAt
+		if isSameDay(lastReset, now) {
+			earned = u.DailyProfitEarned
+		} else {
+			// Reset daily profit for new day
+			earned = 0
+			if _, err := tx.User.UpdateOneID(u.ID).
+				SetDailyProfitEarned(0).
+				SetLastDailyResetAt(now).
+				Save(ctx); err != nil {
+				return fmt.Errorf("failed to reset daily profit: %w", err)
+			}
+		}
+
+		newEarned := earned + profit
+		if newEarned > cap {
+			allowed = false
+			return nil
+		}
+
+		// Update daily profit
+		if _, err := tx.User.UpdateOneID(u.ID).
+			SetDailyProfitEarned(newEarned).
+			Save(ctx); err != nil {
+			return fmt.Errorf("failed to update daily profit: %w", err)
+		}
+
+		allowed = true
+		return nil
+	})
+
+	if err != nil && !allowed {
+		return false, err
+	}
+	if allowed && earned+profit > cap {
+		return false, &DailyProfitCapError{Cap: cap, Earned: earned, Requested: profit}
+	}
+
+	return allowed, err
+}
+
+// isSameDay checks if two timestamps are on the same day (in market location timezone).
+func (s *EconomyService) isSameDay(t1, t2 time.Time) bool {
+	return isSameDay(t1, t2)
+}
+
+func isSameDay(t1, t2 time.Time) bool {
+	y1, m1, d1 := t1.Date()
+	y2, m2, d2 := t2.Date()
+	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
 func (s *EconomyService) Work(ctx context.Context, discordID string, difficulty WorkDifficulty) (WorkResult, error) {

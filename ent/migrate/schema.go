@@ -142,6 +142,8 @@ var (
 		{Name: "crypto_balance", Type: field.TypeInt64, Default: 0},
 		{Name: "xp", Type: field.TypeInt64, Default: 0},
 		{Name: "work_end_at", Type: field.TypeTime},
+		{Name: "daily_profit_earned", Type: field.TypeInt64, Default: 0},
+		{Name: "last_daily_reset_at", Type: field.TypeTime},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

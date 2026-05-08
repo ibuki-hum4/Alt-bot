@@ -22,13 +22,6 @@ const (
 )
 
 func HandleWorkSlash(logger zerolog.Logger, event *events.ApplicationCommandInteractionCreate) {
-	// 経済機能無効化: 即時応答
-	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent("経済機能は現在無効化されています。/work は利用できません。").
-		SetEphemeral(true).
-		Build())
-	return
-
 	userID := event.User().ID.String()
 	expiresAt := time.Now().Add(workInteractionTimeout)
 	easyID := buildWorkButtonID(userID, service.WorkDifficultyEasy, expiresAt.Unix())
@@ -58,13 +51,6 @@ func HandleWorkSlash(logger zerolog.Logger, event *events.ApplicationCommandInte
 }
 
 func HandleWorkComponent(logger zerolog.Logger, economy *service.EconomyService, event *events.ComponentInteractionCreate) {
-	// 経済機能無効化: 即時応答
-	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent("経済機能は現在無効化されています。操作は行えません。").
-		SetEphemeral(true).
-		Build())
-	return
-
 	userID, difficulty, expiresAt, err := parseWorkButtonID(event.Data.CustomID())
 	if err != nil {
 		return

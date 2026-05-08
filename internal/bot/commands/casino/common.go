@@ -73,12 +73,6 @@ func startCasinoSession(
 }
 
 func HandleCasinoComponent(economy *service.EconomyService, event *events.ComponentInteractionCreate) {
-	// 経済機能無効化: 即時応答
-	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent("経済機能は現在無効化されています。操作は行えません。").
-		SetEphemeral(true).
-		Build())
-	return
 	s, action, err := parseCasinoComponentID(event.Data.CustomID())
 	if err != nil {
 		return

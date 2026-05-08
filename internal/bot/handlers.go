@@ -66,7 +66,26 @@ type Handlers struct {
 	maxComponentPerWindow   int
 }
 
+func (h *Handlers) Config() config.Config {
+	return h.cfg
+}
+
 const economyDisabledMessage = "経済機能は現在無効化されています。"
+
+func checkGuildAdmin(event *events.ApplicationCommandInteractionCreate) (bool, string) {
+	if event.GuildID() == nil {
+		return false, "このコマンドはサーバー内でのみ利用できます。"
+	}
+	member := event.Member()
+	if member == nil {
+		return false, "メンバー情報を取得できません。"
+	}
+	perms := member.Permissions
+	if perms&discord.PermissionManageGuild == 0 {
+		return false, "このコマンドはサーバー管理者のみが実行できます。"
+	}
+	return true, ""
+}
 
 func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelService, cfg config.Config, ownerIDs []string, logger zerolog.Logger) *Handlers {
 	set := make(map[string]struct{}, len(ownerIDs))
@@ -395,11 +414,30 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 			h.replyEconomyDisabledSlash(event, " /crypto は利用できません。")
 			return
 		}
+		if !h.cfg.CryptoEnabled {
+			h.replyFeatureDisabledSlash(event, "Crypto", " /crypto は利用できません。")
+			return
+		}
 		cmdcrypto.HandleCryptoSlash(h.logger, h.economy, event)
 	case "casino":
+		subName := ""
+		if data := event.SlashCommandInteractionData(); data.SubCommandName != nil {
+			subName = strings.ToLower(*data.SubCommandName)
+		}
 		if !h.cfg.EconomyEnabled {
 			h.replyEconomyDisabledSlash(event, " /casino は利用できません。")
 			return
+		}
+		if subName == "poker" {
+			if !h.cfg.PokerEnabled {
+				h.replyFeatureDisabledSlash(event, "Poker", " /casino poker は利用できません。")
+				return
+			}
+		} else {
+			if !h.cfg.CasinoEnabled {
+				h.replyFeatureDisabledSlash(event, "Casino", " /casino は利用できません。")
+				return
+			}
 		}
 		cmdcasino.HandleCasino(h.economy, event)
 	case "commands":
@@ -432,9 +470,16 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 			return
 		}
 		cmdutil.HandleChart(h.logger, h.economy, event)
-	case "rolepanel":
+	case "rp":
 		cmdutil.HandleRolePanel(h.logger, h.cfg, h.rolePanels, event)
 	case "mod":
+		if !h.cfg.ModEnabled {
+			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+				SetContent("モデレーション機能は現在無効化されています。").
+				SetEphemeral(true).
+				Build())
+			return
+		}
 		cmdmod.HandleModeration(event)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -466,10 +511,18 @@ func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCrea
 			h.replyEconomyDisabledComponent(event)
 			return
 		}
+		if !h.cfg.CryptoEnabled {
+			h.replyFeatureDisabledComponent(event, "Crypto")
+			return
+		}
 		cmdcrypto.HandleCryptoComponent(h.logger, h.economy, event)
 	case strings.HasPrefix(customID, "casino:"):
 		if !h.cfg.EconomyEnabled {
 			h.replyEconomyDisabledComponent(event)
+			return
+		}
+		if !h.cfg.CasinoEnabled {
+			h.replyFeatureDisabledComponent(event, "Casino")
 			return
 		}
 		cmdcasino.HandleCasinoComponent(h.economy, event)
@@ -478,13 +531,23 @@ func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCrea
 			h.replyEconomyDisabledComponent(event)
 			return
 		}
+		if !h.cfg.CasinoEnabled {
+			h.replyFeatureDisabledComponent(event, "Casino")
+			return
+		}
 		cmdcasino.HandleBlackjackComponent(h.economy, event)
 	case strings.HasPrefix(customID, "mines:"):
 		if !h.cfg.EconomyEnabled {
 			h.replyEconomyDisabledComponent(event)
 			return
 		}
+		if !h.cfg.CasinoEnabled {
+			h.replyFeatureDisabledComponent(event, "Casino")
+			return
+		}
 		cmdcasino.HandleMinesComponent(h.economy, event)
+	case strings.HasPrefix(customID, "rolepanel:"):
+		cmdutil.HandleRolePanelComponent(h.logger, h.cfg, event)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のボタンです").
@@ -500,9 +563,23 @@ func (h *Handlers) replyEconomyDisabledSlash(event *events.ApplicationCommandInt
 		Build())
 }
 
+func (h *Handlers) replyFeatureDisabledSlash(event *events.ApplicationCommandInteractionCreate, feature string, suffix string) {
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent(feature + "機能は現在無効化されています。" + suffix).
+		SetEphemeral(true).
+		Build())
+}
+
 func (h *Handlers) replyEconomyDisabledComponent(event *events.ComponentInteractionCreate) {
 	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 		SetContent(economyDisabledMessage + " 操作は行えません。").
+		SetEphemeral(true).
+		Build())
+}
+
+func (h *Handlers) replyFeatureDisabledComponent(event *events.ComponentInteractionCreate, feature string) {
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent(feature + "機能は現在無効化されています。").
 		SetEphemeral(true).
 		Build())
 }

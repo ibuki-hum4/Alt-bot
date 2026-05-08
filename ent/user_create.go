@@ -82,6 +82,34 @@ func (_c *UserCreate) SetNillableWorkEndAt(v *time.Time) *UserCreate {
 	return _c
 }
 
+// SetDailyProfitEarned sets the "daily_profit_earned" field.
+func (_c *UserCreate) SetDailyProfitEarned(v int64) *UserCreate {
+	_c.mutation.SetDailyProfitEarned(v)
+	return _c
+}
+
+// SetNillableDailyProfitEarned sets the "daily_profit_earned" field if the given value is not nil.
+func (_c *UserCreate) SetNillableDailyProfitEarned(v *int64) *UserCreate {
+	if v != nil {
+		_c.SetDailyProfitEarned(*v)
+	}
+	return _c
+}
+
+// SetLastDailyResetAt sets the "last_daily_reset_at" field.
+func (_c *UserCreate) SetLastDailyResetAt(v time.Time) *UserCreate {
+	_c.mutation.SetLastDailyResetAt(v)
+	return _c
+}
+
+// SetNillableLastDailyResetAt sets the "last_daily_reset_at" field if the given value is not nil.
+func (_c *UserCreate) SetNillableLastDailyResetAt(v *time.Time) *UserCreate {
+	if v != nil {
+		_c.SetLastDailyResetAt(*v)
+	}
+	return _c
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_c *UserCreate) Mutation() *UserMutation {
 	return _c.mutation
@@ -133,6 +161,14 @@ func (_c *UserCreate) defaults() {
 		v := user.DefaultWorkEndAt
 		_c.mutation.SetWorkEndAt(v)
 	}
+	if _, ok := _c.mutation.DailyProfitEarned(); !ok {
+		v := user.DefaultDailyProfitEarned
+		_c.mutation.SetDailyProfitEarned(v)
+	}
+	if _, ok := _c.mutation.LastDailyResetAt(); !ok {
+		v := user.DefaultLastDailyResetAt
+		_c.mutation.SetLastDailyResetAt(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -156,6 +192,12 @@ func (_c *UserCreate) check() error {
 	}
 	if _, ok := _c.mutation.WorkEndAt(); !ok {
 		return &ValidationError{Name: "work_end_at", err: errors.New(`ent: missing required field "User.work_end_at"`)}
+	}
+	if _, ok := _c.mutation.DailyProfitEarned(); !ok {
+		return &ValidationError{Name: "daily_profit_earned", err: errors.New(`ent: missing required field "User.daily_profit_earned"`)}
+	}
+	if _, ok := _c.mutation.LastDailyResetAt(); !ok {
+		return &ValidationError{Name: "last_daily_reset_at", err: errors.New(`ent: missing required field "User.last_daily_reset_at"`)}
 	}
 	return nil
 }
@@ -202,6 +244,14 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.WorkEndAt(); ok {
 		_spec.SetField(user.FieldWorkEndAt, field.TypeTime, value)
 		_node.WorkEndAt = value
+	}
+	if value, ok := _c.mutation.DailyProfitEarned(); ok {
+		_spec.SetField(user.FieldDailyProfitEarned, field.TypeInt64, value)
+		_node.DailyProfitEarned = value
+	}
+	if value, ok := _c.mutation.LastDailyResetAt(); ok {
+		_spec.SetField(user.FieldLastDailyResetAt, field.TypeTime, value)
+		_node.LastDailyResetAt = value
 	}
 	return _node, _spec
 }

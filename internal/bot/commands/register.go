@@ -81,6 +81,18 @@ func Definitions() []discord.ApplicationCommandCreate {
 						},
 					},
 				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "poker",
+					Description: "簡易ポーカー",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionInt{
+							Name:        "amount",
+							Description: "賭けるYen",
+							Required:    true,
+							MinValue:    intPointer(1),
+						},
+					},
+				},
 			},
 		},
 		discord.SlashCommandCreate{
@@ -152,18 +164,18 @@ func Definitions() []discord.ApplicationCommandCreate {
 						},
 					}, rolepanel.RoleOptions()...),
 				},
-							discord.ApplicationCommandOptionSubCommand{
-								Name:        "delete",
-								Description: "ロールパネルを削除",
-								Options: []discord.ApplicationCommandOption{
-									discord.ApplicationCommandOptionString{
-										Name:         "panel",
-										Description:  "削除するロールパネル",
-										Required:     true,
-										Autocomplete: true,
-									},
-								},
-							},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "delete",
+					Description: "ロールパネルを削除",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:         "panel",
+							Description:  "削除するロールパネル",
+							Required:     true,
+							Autocomplete: true,
+						},
+					},
+				},
 			},
 		},
 		discord.SlashCommandCreate{

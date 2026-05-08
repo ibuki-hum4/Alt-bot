@@ -23,6 +23,10 @@ const (
 	FieldXp = "xp"
 	// FieldWorkEndAt holds the string denoting the work_end_at field in the database.
 	FieldWorkEndAt = "work_end_at"
+	// FieldDailyProfitEarned holds the string denoting the daily_profit_earned field in the database.
+	FieldDailyProfitEarned = "daily_profit_earned"
+	// FieldLastDailyResetAt holds the string denoting the last_daily_reset_at field in the database.
+	FieldLastDailyResetAt = "last_daily_reset_at"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 )
@@ -35,6 +39,8 @@ var Columns = []string{
 	FieldCryptoBalance,
 	FieldXp,
 	FieldWorkEndAt,
+	FieldDailyProfitEarned,
+	FieldLastDailyResetAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -58,6 +64,10 @@ var (
 	DefaultXp int64
 	// DefaultWorkEndAt holds the default value on creation for the "work_end_at" field.
 	DefaultWorkEndAt time.Time
+	// DefaultDailyProfitEarned holds the default value on creation for the "daily_profit_earned" field.
+	DefaultDailyProfitEarned int64
+	// DefaultLastDailyResetAt holds the default value on creation for the "last_daily_reset_at" field.
+	DefaultLastDailyResetAt time.Time
 )
 
 // OrderOption defines the ordering options for the User queries.
@@ -91,4 +101,14 @@ func ByXp(opts ...sql.OrderTermOption) OrderOption {
 // ByWorkEndAt orders the results by the work_end_at field.
 func ByWorkEndAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWorkEndAt, opts...).ToFunc()
+}
+
+// ByDailyProfitEarned orders the results by the daily_profit_earned field.
+func ByDailyProfitEarned(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDailyProfitEarned, opts...).ToFunc()
+}
+
+// ByLastDailyResetAt orders the results by the last_daily_reset_at field.
+func ByLastDailyResetAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastDailyResetAt, opts...).ToFunc()
 }

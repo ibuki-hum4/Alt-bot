@@ -12,7 +12,7 @@ func HandleHelp(event *events.ApplicationCommandInteractionCreate) {
 		SetColor(0x5865F2).
 		AddField("Utility", "/help, /ping, /news channel|off|status, /rate, /chart [limit]", false).
 		AddField("Economy", "/work, /crypto buy|sell amount", false).
-		AddField("Casino", "/casino blackjack|chinchiro|mines amount", false).
+		AddField("Casino", "/casino blackjack|chinchiro|mines|poker amount", false).
 		AddField("Moderation", "/mod kick|ban|mute user ...", false).
 		AddField("Admin", "/commands reload (Bot Owner only)", false).
 		AddField("Role Panel", "/rp create, /rp add, /rp delete", false).

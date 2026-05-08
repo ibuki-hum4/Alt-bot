@@ -79,6 +79,16 @@ func WorkEndAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldWorkEndAt, v))
 }
 
+// DailyProfitEarned applies equality check predicate on the "daily_profit_earned" field. It's identical to DailyProfitEarnedEQ.
+func DailyProfitEarned(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldDailyProfitEarned, v))
+}
+
+// LastDailyResetAt applies equality check predicate on the "last_daily_reset_at" field. It's identical to LastDailyResetAtEQ.
+func LastDailyResetAt(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldLastDailyResetAt, v))
+}
+
 // DiscordIDEQ applies the EQ predicate on the "discord_id" field.
 func DiscordIDEQ(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldDiscordID, v))
@@ -302,6 +312,86 @@ func WorkEndAtLT(v time.Time) predicate.User {
 // WorkEndAtLTE applies the LTE predicate on the "work_end_at" field.
 func WorkEndAtLTE(v time.Time) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldWorkEndAt, v))
+}
+
+// DailyProfitEarnedEQ applies the EQ predicate on the "daily_profit_earned" field.
+func DailyProfitEarnedEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldDailyProfitEarned, v))
+}
+
+// DailyProfitEarnedNEQ applies the NEQ predicate on the "daily_profit_earned" field.
+func DailyProfitEarnedNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldDailyProfitEarned, v))
+}
+
+// DailyProfitEarnedIn applies the In predicate on the "daily_profit_earned" field.
+func DailyProfitEarnedIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldDailyProfitEarned, vs...))
+}
+
+// DailyProfitEarnedNotIn applies the NotIn predicate on the "daily_profit_earned" field.
+func DailyProfitEarnedNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldDailyProfitEarned, vs...))
+}
+
+// DailyProfitEarnedGT applies the GT predicate on the "daily_profit_earned" field.
+func DailyProfitEarnedGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldDailyProfitEarned, v))
+}
+
+// DailyProfitEarnedGTE applies the GTE predicate on the "daily_profit_earned" field.
+func DailyProfitEarnedGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldDailyProfitEarned, v))
+}
+
+// DailyProfitEarnedLT applies the LT predicate on the "daily_profit_earned" field.
+func DailyProfitEarnedLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldDailyProfitEarned, v))
+}
+
+// DailyProfitEarnedLTE applies the LTE predicate on the "daily_profit_earned" field.
+func DailyProfitEarnedLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldDailyProfitEarned, v))
+}
+
+// LastDailyResetAtEQ applies the EQ predicate on the "last_daily_reset_at" field.
+func LastDailyResetAtEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldLastDailyResetAt, v))
+}
+
+// LastDailyResetAtNEQ applies the NEQ predicate on the "last_daily_reset_at" field.
+func LastDailyResetAtNEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldLastDailyResetAt, v))
+}
+
+// LastDailyResetAtIn applies the In predicate on the "last_daily_reset_at" field.
+func LastDailyResetAtIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldIn(FieldLastDailyResetAt, vs...))
+}
+
+// LastDailyResetAtNotIn applies the NotIn predicate on the "last_daily_reset_at" field.
+func LastDailyResetAtNotIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldLastDailyResetAt, vs...))
+}
+
+// LastDailyResetAtGT applies the GT predicate on the "last_daily_reset_at" field.
+func LastDailyResetAtGT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGT(FieldLastDailyResetAt, v))
+}
+
+// LastDailyResetAtGTE applies the GTE predicate on the "last_daily_reset_at" field.
+func LastDailyResetAtGTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldLastDailyResetAt, v))
+}
+
+// LastDailyResetAtLT applies the LT predicate on the "last_daily_reset_at" field.
+func LastDailyResetAtLT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLT(FieldLastDailyResetAt, v))
+}
+
+// LastDailyResetAtLTE applies the LTE predicate on the "last_daily_reset_at" field.
+func LastDailyResetAtLTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldLastDailyResetAt, v))
 }
 
 // And groups predicates with the AND operator between them.

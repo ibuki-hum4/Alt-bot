@@ -37,6 +37,23 @@ func HandleRolePanel(logger zerolog.Logger, cfg config.Config, rolePanels *servi
 		return
 	}
 
+	// Check admin permission
+	member := event.Member()
+	if member == nil {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("メンバー情報を取得できません。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+	if member.Permissions&discord.PermissionManageGuild == 0 {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("このコマンドはサーバー管理者のみが実行できます。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
+
 	if ok, message := allowRolePanel(cfg, *guildID); !ok {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent(message).

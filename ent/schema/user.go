@@ -26,6 +26,10 @@ func (User) Fields() []ent.Field {
 			Default(0),
 		field.Time("work_end_at").
 			Default(time.Unix(0, 0).UTC()),
+		field.Int64("daily_profit_earned").
+			Default(0),
+		field.Time("last_daily_reset_at").
+			Default(time.Unix(0, 0).UTC()),
 	}
 }
 

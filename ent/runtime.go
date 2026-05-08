@@ -215,4 +215,12 @@ func init() {
 	userDescWorkEndAt := userFields[4].Descriptor()
 	// user.DefaultWorkEndAt holds the default value on creation for the work_end_at field.
 	user.DefaultWorkEndAt = userDescWorkEndAt.Default.(time.Time)
+	// userDescDailyProfitEarned is the schema descriptor for daily_profit_earned field.
+	userDescDailyProfitEarned := userFields[5].Descriptor()
+	// user.DefaultDailyProfitEarned holds the default value on creation for the daily_profit_earned field.
+	user.DefaultDailyProfitEarned = userDescDailyProfitEarned.Default.(int64)
+	// userDescLastDailyResetAt is the schema descriptor for last_daily_reset_at field.
+	userDescLastDailyResetAt := userFields[6].Descriptor()
+	// user.DefaultLastDailyResetAt holds the default value on creation for the last_daily_reset_at field.
+	user.DefaultLastDailyResetAt = userDescLastDailyResetAt.Default.(time.Time)
 }

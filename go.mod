@@ -10,7 +10,7 @@ require (
 	github.com/fogleman/gg v1.3.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/lib/pq v1.10.9
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.1
 	github.com/spf13/viper v1.21.0
 	go.uber.org/fx v1.24.0
 	golang.org/x/image v0.39.0
@@ -33,8 +33,8 @@ require (
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/hcl/v2 v2.18.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect

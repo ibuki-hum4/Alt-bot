@@ -262,26 +262,14 @@ func (_c *UserCreate) check() error {
 	if _, ok := _c.mutation.Xp(); !ok {
 		return &ValidationError{Name: "xp", err: errors.New(`ent: missing required field "User.xp"`)}
 	}
-	if _, ok := _c.mutation.WorkEndAt(); !ok {
-		return &ValidationError{Name: "work_end_at", err: errors.New(`ent: missing required field "User.work_end_at"`)}
-	}
 	if _, ok := _c.mutation.DailyProfitEarned(); !ok {
 		return &ValidationError{Name: "daily_profit_earned", err: errors.New(`ent: missing required field "User.daily_profit_earned"`)}
-	}
-	if _, ok := _c.mutation.LastDailyResetAt(); !ok {
-		return &ValidationError{Name: "last_daily_reset_at", err: errors.New(`ent: missing required field "User.last_daily_reset_at"`)}
 	}
 	if _, ok := _c.mutation.WeeklyProfitEarned(); !ok {
 		return &ValidationError{Name: "weekly_profit_earned", err: errors.New(`ent: missing required field "User.weekly_profit_earned"`)}
 	}
-	if _, ok := _c.mutation.LastWeeklyResetAt(); !ok {
-		return &ValidationError{Name: "last_weekly_reset_at", err: errors.New(`ent: missing required field "User.last_weekly_reset_at"`)}
-	}
 	if _, ok := _c.mutation.SecurityCameraCount(); !ok {
 		return &ValidationError{Name: "security_camera_count", err: errors.New(`ent: missing required field "User.security_camera_count"`)}
-	}
-	if _, ok := _c.mutation.RobEndAt(); !ok {
-		return &ValidationError{Name: "rob_end_at", err: errors.New(`ent: missing required field "User.rob_end_at"`)}
 	}
 	return nil
 }

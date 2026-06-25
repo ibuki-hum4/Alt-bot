@@ -148,13 +148,13 @@ var (
 		{Name: "balance", Type: field.TypeInt64, Default: 0},
 		{Name: "crypto_balance", Type: field.TypeInt64, Default: 0},
 		{Name: "xp", Type: field.TypeInt64, Default: 0},
-		{Name: "work_end_at", Type: field.TypeTime},
+		{Name: "work_end_at", Type: field.TypeTime, Default: schema.Expr("to_timestamp(0)")},
 		{Name: "daily_profit_earned", Type: field.TypeInt64, Default: 0},
-		{Name: "last_daily_reset_at", Type: field.TypeTime},
+		{Name: "last_daily_reset_at", Type: field.TypeTime, Default: schema.Expr("to_timestamp(0)")},
 		{Name: "weekly_profit_earned", Type: field.TypeInt64, Default: 0},
-		{Name: "last_weekly_reset_at", Type: field.TypeTime},
+		{Name: "last_weekly_reset_at", Type: field.TypeTime, Default: schema.Expr("to_timestamp(0)")},
 		{Name: "security_camera_count", Type: field.TypeInt64, Default: 0},
-		{Name: "rob_end_at", Type: field.TypeTime},
+		{Name: "rob_end_at", Type: field.TypeTime, Default: schema.Expr("to_timestamp(0)")},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

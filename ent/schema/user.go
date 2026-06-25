@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 )
@@ -25,19 +26,23 @@ func (User) Fields() []ent.Field {
 		field.Int64("xp").
 			Default(0),
 		field.Time("work_end_at").
-			Default(time.Unix(0, 0).UTC()),
+			Default(time.Unix(0, 0).UTC()).
+			Annotations(entsql.DefaultExpr("to_timestamp(0)")),
 		field.Int64("daily_profit_earned").
 			Default(0),
 		field.Time("last_daily_reset_at").
-			Default(time.Unix(0, 0).UTC()),
+			Default(time.Unix(0, 0).UTC()).
+			Annotations(entsql.DefaultExpr("to_timestamp(0)")),
 		field.Int64("weekly_profit_earned").
 			Default(0),
 		field.Time("last_weekly_reset_at").
-			Default(time.Unix(0, 0).UTC()),
+			Default(time.Unix(0, 0).UTC()).
+			Annotations(entsql.DefaultExpr("to_timestamp(0)")),
 		field.Int64("security_camera_count").
 			Default(0),
 		field.Time("rob_end_at").
-			Default(time.Unix(0, 0).UTC()),
+			Default(time.Unix(0, 0).UTC()).
+			Annotations(entsql.DefaultExpr("to_timestamp(0)")),
 	}
 }
 

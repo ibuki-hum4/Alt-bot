@@ -28,7 +28,11 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to open database")
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			logger.Error().Err(err).Msg("failed to close database client")
+		}
+	}()
 
 	if err := db.MigrateSchema(context.Background(), client); err != nil {
 		log.Fatal().Err(err).Msg("schema migration failed")

@@ -401,105 +401,43 @@ func (s *EconomyService) CalculateHighValueTax(amount int64) (int64, int64) {
 	return tax, amount - tax
 }
 
-// DailyProfitCapError indicates user exceeded daily profit limit
-type DailyProfitCapError struct {
-	Cap       int64
-	Earned    int64
-	Requested int64
-}
-
-func (e *DailyProfitCapError) Error() string {
-	return fmt.Sprintf("daily profit limit exceeded: cap=%d earned=%d requested=%d remaining=%d",
-		e.Cap, e.Earned, e.Requested, e.Cap-e.Earned)
-}
-
-// CanAwardProfitToday checks if profit can be awarded and updates daily earned amount.
-// Returns (allowed bool, actualCap int64, error).
+// CanAwardProfitToday is kept for compatibility and now checks both daily and weekly caps atomically.
 func (s *EconomyService) CanAwardProfitToday(ctx context.Context, discordID string, profit int64) (bool, error) {
+	return s.CanAwardProfit(ctx, discordID, profit)
+}
+
+// CanAwardProfitThisWeek is kept for compatibility and now checks both daily and weekly caps atomically.
+func (s *EconomyService) CanAwardProfitThisWeek(ctx context.Context, discordID string, profit int64) (bool, error) {
+	return s.CanAwardProfit(ctx, discordID, profit)
+}
+
+// CanAwardProfit checks whether profit can be awarded and records both daily and weekly totals atomically.
+func (s *EconomyService) CanAwardProfit(ctx context.Context, discordID string, profit int64) (bool, error) {
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	cap := s.cfg.DailyProfitCap
-	if cap <= 0 {
-		// No limit if cap is 0 or negative
+	if profit < 0 {
 		return true, nil
 	}
 
-	if profit < 0 {
-		// Negative profit (losses) don't count against the limit
+	if s.cfg.DailyProfitCap <= 0 && s.cfg.WeeklyProfitCap <= 0 {
 		return true, nil
 	}
 
 	now := time.Now().UTC()
-
-	var allowed bool
-	var earned int64
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
-		u, err := tx.User.Query().
-			Where(user.DiscordID(discordID)).
-			ForUpdate().
-			Only(ctx)
+		u, err := s.lockOrCreateUserForUpdateTx(ctx, tx, discordID, "profit_caps")
 		if err != nil {
-			if ent.IsNotFound(err) {
-				u, err = tx.User.Create().
-					SetDiscordID(discordID).
-					SetBalance(0).
-					SetCryptoBalance(0).
-					SetXp(0).
-					SetWorkEndAt(time.Unix(0, 0).UTC()).
-					SetDailyProfitEarned(0).
-					SetLastDailyResetAt(now).
-					Save(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to create user: %w", err)
-				}
-			} else {
-				return fmt.Errorf("failed to query user: %w", err)
-			}
+			return err
 		}
-
-		// Check if we're on a new day
-		lastReset := u.LastDailyResetAt
-		if isSameDay(lastReset, now) {
-			earned = u.DailyProfitEarned
-		} else {
-			// Reset daily profit for new day
-			earned = 0
-			if _, err := tx.User.UpdateOneID(u.ID).
-				SetDailyProfitEarned(0).
-				SetLastDailyResetAt(now).
-				Save(ctx); err != nil {
-				return fmt.Errorf("failed to reset daily profit: %w", err)
-			}
-		}
-
-		newEarned := earned + profit
-		if newEarned > cap {
-			allowed = false
-			return nil
-		}
-
-		// Update daily profit
-		if _, err := tx.User.UpdateOneID(u.ID).
-			SetDailyProfitEarned(newEarned).
-			Save(ctx); err != nil {
-			return fmt.Errorf("failed to update daily profit: %w", err)
-		}
-
-		allowed = true
-		return nil
+		return s.recordProfitCapsTx(ctx, tx, u, profit, now)
 	})
-
-	if err != nil && !allowed {
+	if err != nil {
 		return false, err
 	}
-	if allowed && earned+profit > cap {
-		return false, &DailyProfitCapError{Cap: cap, Earned: earned, Requested: profit}
-	}
-
-	return allowed, err
+	return true, nil
 }
 
 // isSameDay checks if two timestamps are on the same day (in market location timezone).
@@ -550,25 +488,9 @@ func (s *EconomyService) Work(ctx context.Context, discordID string, difficulty 
 			lastBreachAt = &t
 		}
 
-		u, err := tx.User.Query().
-			Where(user.DiscordID(discordID)).
-			ForUpdate().
-			Only(ctx)
+		u, err := s.lockOrCreateUserForUpdateTx(ctx, tx, discordID, "work")
 		if err != nil {
-			if ent.IsNotFound(err) {
-				u, err = tx.User.Create().
-					SetDiscordID(discordID).
-					SetBalance(0).
-					SetCryptoBalance(0).
-					SetXp(0).
-					SetWorkEndAt(time.Unix(0, 0).UTC()).
-					Save(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to auto-create user in work: %w", err)
-				}
-			} else {
-				return fmt.Errorf("failed to read user in work: %w", err)
-			}
+			return err
 		}
 
 		if u.WorkEndAt.After(now) {
@@ -584,6 +506,9 @@ func (s *EconomyService) Work(ctx context.Context, discordID string, difficulty 
 		dailyDate, dailyIssued, dailyCap = normalizeDailyIssuanceFields(dailyDate, dailyIssued, dailyCap, now, activeEvent, s.marketLocation)
 		if dailyIssued+netReward > dailyCap {
 			return &DailyIssuanceCapError{Cap: dailyCap, Issued: dailyIssued, Want: netReward}
+		}
+		if err := s.recordProfitCapsTx(ctx, tx, u, netReward, now); err != nil {
+			return err
 		}
 		fees := splitFee(tax)
 		reserveBalance += fees.Reserve
@@ -709,25 +634,9 @@ func (s *EconomyService) BuyCrypto(ctx context.Context, discordID string, amount
 		fees := splitFee(fee)
 		priceAfter, gbm, evtMul, impact := s.modelPrice(settledPrice, EventType(state.CurrentEvent), amount, 1)
 
-		u, err := tx.User.Query().
-			Where(user.DiscordID(discordID)).
-			ForUpdate().
-			Only(ctx)
+		u, err := s.lockOrCreateUserForUpdateTx(ctx, tx, discordID, "buy")
 		if err != nil {
-			if ent.IsNotFound(err) {
-				u, err = tx.User.Create().
-					SetDiscordID(discordID).
-					SetBalance(0).
-					SetCryptoBalance(0).
-					SetXp(0).
-					SetWorkEndAt(time.Unix(0, 0).UTC()).
-					Save(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to create user in buy: %w", err)
-				}
-			} else {
-				return fmt.Errorf("failed to load user in buy: %w", err)
-			}
+			return err
 		}
 
 		if u.Balance < totalCost {
@@ -823,6 +732,7 @@ func (s *EconomyService) SellCrypto(ctx context.Context, discordID string, amoun
 	defer cancel()
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	now := time.Now().UTC()
 
 	var result SellCryptoResult
 	var nextHash string
@@ -866,10 +776,7 @@ func (s *EconomyService) SellCrypto(ctx context.Context, discordID string, amoun
 		fees := splitFee(fee)
 		priceAfter, gbm, evtMul, impact := s.modelPrice(settledPrice, EventType(state.CurrentEvent), amount, -1)
 
-		u, err := tx.User.Query().
-			Where(user.DiscordID(discordID)).
-			ForUpdate().
-			Only(ctx)
+		u, err := s.lockUserForUpdateTx(ctx, tx, discordID)
 		if err != nil {
 			if ent.IsNotFound(err) {
 				return &InsufficientALTError{Need: amount, Have: 0}
@@ -879,6 +786,11 @@ func (s *EconomyService) SellCrypto(ctx context.Context, discordID string, amoun
 
 		if u.CryptoBalance < amount {
 			return &InsufficientALTError{Need: amount, Have: u.CryptoBalance}
+		}
+		if totalRevenue > 0 {
+			if err := s.recordProfitCapsTx(ctx, tx, u, totalRevenue, now); err != nil {
+				return err
+			}
 		}
 
 		newBalance := u.Balance + totalRevenue
@@ -976,6 +888,10 @@ type txLogInput struct {
 }
 
 func (s *EconomyService) appendSignedLog(ctx context.Context, tx *ent.Tx, in txLogInput) (string, error) {
+	return s.appendSignedLogWithPrevHash(ctx, tx, s.prevHash, in)
+}
+
+func (s *EconomyService) appendSignedLogWithPrevHash(ctx context.Context, tx *ent.Tx, prevHash string, in txLogInput) (string, error) {
 	txID, err := randomHex(16)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate tx id: %w", err)
@@ -983,7 +899,7 @@ func (s *EconomyService) appendSignedLog(ctx context.Context, tx *ent.Tx, in txL
 
 	payload := fmt.Sprintf(
 		"%s|%s|%s|%d|%d|%d|%d|%.8f|%.8f|%d|%d",
-		s.prevHash,
+		prevHash,
 		txID,
 		in.Kind,
 		in.YenDelta,
@@ -1012,7 +928,7 @@ func (s *EconomyService) appendSignedLog(ctx context.Context, tx *ent.Tx, in txL
 		SetPriceAfter(in.PriceAfter).
 		SetBalanceAfter(in.BalanceAfter).
 		SetCryptoAfter(in.ALTAfter).
-		SetPrevHash(s.prevHash).
+		SetPrevHash(prevHash).
 		SetHash(hashHex).
 		SetSignature(hex.EncodeToString(signature)).
 		SetPublicKey(hex.EncodeToString(s.publicKey)).

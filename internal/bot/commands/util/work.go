@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"alt-bot/internal/bot/commands/uierr"
 	"alt-bot/internal/service"
 
 	"github.com/disgoorg/disgo/bot"
@@ -98,39 +99,17 @@ func HandleWorkComponent(logger zerolog.Logger, economy *service.EconomyService,
 			return
 		}
 
-		var issuanceErr *service.DailyIssuanceCapError
-		if errors.As(workErr, &issuanceErr) {
-			embed := discord.NewEmbedBuilder().
-				SetTitle("本日の配布上限").
-				SetDescription(fmt.Sprintf("本日の発行上限に達しました。上限: %d / 既発行: %d", issuanceErr.Cap, issuanceErr.Issued)).
-				SetColor(0xE67E22).
-				Build()
-			_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().
-				SetEmbeds(embed).
-				SetContainerComponents(workDisabledRow(easyID, hardID)).
-				Build())
-			return
+		message, ok := uierr.Format(workErr, "獲得")
+		color := 0xE67E22
+		if !ok {
+			logger.Error().Err(workErr).Msg("work button failed")
+			message = "処理中にエラーが発生しました。時間をおいて再試行してください。"
+			color = 0xE74C3C
 		}
-
-		var haltedErr *service.MarketHaltedError
-		if errors.As(workErr, &haltedErr) {
-			embed := discord.NewEmbedBuilder().
-				SetTitle("市場停止中").
-				SetDescription("市場は緊急停止中です。30分安定後に自動解除されます。").
-				SetColor(0xE67E22).
-				Build()
-			_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().
-				SetEmbeds(embed).
-				SetContainerComponents(workDisabledRow(easyID, hardID)).
-				Build())
-			return
-		}
-
-		logger.Error().Err(workErr).Msg("work button failed")
 		embed := discord.NewEmbedBuilder().
 			SetTitle("エラー").
-			SetDescription("処理中にエラーが発生しました。時間をおいて再試行してください。").
-			SetColor(0xE74C3C).
+			SetDescription(message).
+			SetColor(color).
 			Build()
 		_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().
 			SetEmbeds(embed).

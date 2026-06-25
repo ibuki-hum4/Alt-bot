@@ -4266,24 +4266,30 @@ func (m *TransactionLogMutation) ResetEdge(name string) error {
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op                     Op
-	typ                    string
-	id                     *int
-	discord_id             *string
-	balance                *int64
-	addbalance             *int64
-	crypto_balance         *int64
-	addcrypto_balance      *int64
-	xp                     *int64
-	addxp                  *int64
-	work_end_at            *time.Time
-	daily_profit_earned    *int64
-	adddaily_profit_earned *int64
-	last_daily_reset_at    *time.Time
-	clearedFields          map[string]struct{}
-	done                   bool
-	oldValue               func(context.Context) (*User, error)
-	predicates             []predicate.User
+	op                       Op
+	typ                      string
+	id                       *int
+	discord_id               *string
+	balance                  *int64
+	addbalance               *int64
+	crypto_balance           *int64
+	addcrypto_balance        *int64
+	xp                       *int64
+	addxp                    *int64
+	work_end_at              *time.Time
+	daily_profit_earned      *int64
+	adddaily_profit_earned   *int64
+	last_daily_reset_at      *time.Time
+	weekly_profit_earned     *int64
+	addweekly_profit_earned  *int64
+	last_weekly_reset_at     *time.Time
+	security_camera_count    *int64
+	addsecurity_camera_count *int64
+	rob_end_at               *time.Time
+	clearedFields            map[string]struct{}
+	done                     bool
+	oldValue                 func(context.Context) (*User, error)
+	predicates               []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -4716,6 +4722,190 @@ func (m *UserMutation) ResetLastDailyResetAt() {
 	m.last_daily_reset_at = nil
 }
 
+// SetWeeklyProfitEarned sets the "weekly_profit_earned" field.
+func (m *UserMutation) SetWeeklyProfitEarned(i int64) {
+	m.weekly_profit_earned = &i
+	m.addweekly_profit_earned = nil
+}
+
+// WeeklyProfitEarned returns the value of the "weekly_profit_earned" field in the mutation.
+func (m *UserMutation) WeeklyProfitEarned() (r int64, exists bool) {
+	v := m.weekly_profit_earned
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWeeklyProfitEarned returns the old "weekly_profit_earned" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldWeeklyProfitEarned(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWeeklyProfitEarned is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWeeklyProfitEarned requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWeeklyProfitEarned: %w", err)
+	}
+	return oldValue.WeeklyProfitEarned, nil
+}
+
+// AddWeeklyProfitEarned adds i to the "weekly_profit_earned" field.
+func (m *UserMutation) AddWeeklyProfitEarned(i int64) {
+	if m.addweekly_profit_earned != nil {
+		*m.addweekly_profit_earned += i
+	} else {
+		m.addweekly_profit_earned = &i
+	}
+}
+
+// AddedWeeklyProfitEarned returns the value that was added to the "weekly_profit_earned" field in this mutation.
+func (m *UserMutation) AddedWeeklyProfitEarned() (r int64, exists bool) {
+	v := m.addweekly_profit_earned
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWeeklyProfitEarned resets all changes to the "weekly_profit_earned" field.
+func (m *UserMutation) ResetWeeklyProfitEarned() {
+	m.weekly_profit_earned = nil
+	m.addweekly_profit_earned = nil
+}
+
+// SetLastWeeklyResetAt sets the "last_weekly_reset_at" field.
+func (m *UserMutation) SetLastWeeklyResetAt(t time.Time) {
+	m.last_weekly_reset_at = &t
+}
+
+// LastWeeklyResetAt returns the value of the "last_weekly_reset_at" field in the mutation.
+func (m *UserMutation) LastWeeklyResetAt() (r time.Time, exists bool) {
+	v := m.last_weekly_reset_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastWeeklyResetAt returns the old "last_weekly_reset_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldLastWeeklyResetAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastWeeklyResetAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastWeeklyResetAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastWeeklyResetAt: %w", err)
+	}
+	return oldValue.LastWeeklyResetAt, nil
+}
+
+// ResetLastWeeklyResetAt resets all changes to the "last_weekly_reset_at" field.
+func (m *UserMutation) ResetLastWeeklyResetAt() {
+	m.last_weekly_reset_at = nil
+}
+
+// SetSecurityCameraCount sets the "security_camera_count" field.
+func (m *UserMutation) SetSecurityCameraCount(i int64) {
+	m.security_camera_count = &i
+	m.addsecurity_camera_count = nil
+}
+
+// SecurityCameraCount returns the value of the "security_camera_count" field in the mutation.
+func (m *UserMutation) SecurityCameraCount() (r int64, exists bool) {
+	v := m.security_camera_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSecurityCameraCount returns the old "security_camera_count" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldSecurityCameraCount(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSecurityCameraCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSecurityCameraCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSecurityCameraCount: %w", err)
+	}
+	return oldValue.SecurityCameraCount, nil
+}
+
+// AddSecurityCameraCount adds i to the "security_camera_count" field.
+func (m *UserMutation) AddSecurityCameraCount(i int64) {
+	if m.addsecurity_camera_count != nil {
+		*m.addsecurity_camera_count += i
+	} else {
+		m.addsecurity_camera_count = &i
+	}
+}
+
+// AddedSecurityCameraCount returns the value that was added to the "security_camera_count" field in this mutation.
+func (m *UserMutation) AddedSecurityCameraCount() (r int64, exists bool) {
+	v := m.addsecurity_camera_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSecurityCameraCount resets all changes to the "security_camera_count" field.
+func (m *UserMutation) ResetSecurityCameraCount() {
+	m.security_camera_count = nil
+	m.addsecurity_camera_count = nil
+}
+
+// SetRobEndAt sets the "rob_end_at" field.
+func (m *UserMutation) SetRobEndAt(t time.Time) {
+	m.rob_end_at = &t
+}
+
+// RobEndAt returns the value of the "rob_end_at" field in the mutation.
+func (m *UserMutation) RobEndAt() (r time.Time, exists bool) {
+	v := m.rob_end_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRobEndAt returns the old "rob_end_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldRobEndAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRobEndAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRobEndAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRobEndAt: %w", err)
+	}
+	return oldValue.RobEndAt, nil
+}
+
+// ResetRobEndAt resets all changes to the "rob_end_at" field.
+func (m *UserMutation) ResetRobEndAt() {
+	m.rob_end_at = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -4750,7 +4940,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 11)
 	if m.discord_id != nil {
 		fields = append(fields, user.FieldDiscordID)
 	}
@@ -4771,6 +4961,18 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.last_daily_reset_at != nil {
 		fields = append(fields, user.FieldLastDailyResetAt)
+	}
+	if m.weekly_profit_earned != nil {
+		fields = append(fields, user.FieldWeeklyProfitEarned)
+	}
+	if m.last_weekly_reset_at != nil {
+		fields = append(fields, user.FieldLastWeeklyResetAt)
+	}
+	if m.security_camera_count != nil {
+		fields = append(fields, user.FieldSecurityCameraCount)
+	}
+	if m.rob_end_at != nil {
+		fields = append(fields, user.FieldRobEndAt)
 	}
 	return fields
 }
@@ -4794,6 +4996,14 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.DailyProfitEarned()
 	case user.FieldLastDailyResetAt:
 		return m.LastDailyResetAt()
+	case user.FieldWeeklyProfitEarned:
+		return m.WeeklyProfitEarned()
+	case user.FieldLastWeeklyResetAt:
+		return m.LastWeeklyResetAt()
+	case user.FieldSecurityCameraCount:
+		return m.SecurityCameraCount()
+	case user.FieldRobEndAt:
+		return m.RobEndAt()
 	}
 	return nil, false
 }
@@ -4817,6 +5027,14 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldDailyProfitEarned(ctx)
 	case user.FieldLastDailyResetAt:
 		return m.OldLastDailyResetAt(ctx)
+	case user.FieldWeeklyProfitEarned:
+		return m.OldWeeklyProfitEarned(ctx)
+	case user.FieldLastWeeklyResetAt:
+		return m.OldLastWeeklyResetAt(ctx)
+	case user.FieldSecurityCameraCount:
+		return m.OldSecurityCameraCount(ctx)
+	case user.FieldRobEndAt:
+		return m.OldRobEndAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -4875,6 +5093,34 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLastDailyResetAt(v)
 		return nil
+	case user.FieldWeeklyProfitEarned:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWeeklyProfitEarned(v)
+		return nil
+	case user.FieldLastWeeklyResetAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastWeeklyResetAt(v)
+		return nil
+	case user.FieldSecurityCameraCount:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSecurityCameraCount(v)
+		return nil
+	case user.FieldRobEndAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRobEndAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
@@ -4895,6 +5141,12 @@ func (m *UserMutation) AddedFields() []string {
 	if m.adddaily_profit_earned != nil {
 		fields = append(fields, user.FieldDailyProfitEarned)
 	}
+	if m.addweekly_profit_earned != nil {
+		fields = append(fields, user.FieldWeeklyProfitEarned)
+	}
+	if m.addsecurity_camera_count != nil {
+		fields = append(fields, user.FieldSecurityCameraCount)
+	}
 	return fields
 }
 
@@ -4911,6 +5163,10 @@ func (m *UserMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedXp()
 	case user.FieldDailyProfitEarned:
 		return m.AddedDailyProfitEarned()
+	case user.FieldWeeklyProfitEarned:
+		return m.AddedWeeklyProfitEarned()
+	case user.FieldSecurityCameraCount:
+		return m.AddedSecurityCameraCount()
 	}
 	return nil, false
 }
@@ -4947,6 +5203,20 @@ func (m *UserMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddDailyProfitEarned(v)
+		return nil
+	case user.FieldWeeklyProfitEarned:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWeeklyProfitEarned(v)
+		return nil
+	case user.FieldSecurityCameraCount:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSecurityCameraCount(v)
 		return nil
 	}
 	return fmt.Errorf("unknown User numeric field %s", name)
@@ -4995,6 +5265,18 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldLastDailyResetAt:
 		m.ResetLastDailyResetAt()
+		return nil
+	case user.FieldWeeklyProfitEarned:
+		m.ResetWeeklyProfitEarned()
+		return nil
+	case user.FieldLastWeeklyResetAt:
+		m.ResetLastWeeklyResetAt()
+		return nil
+	case user.FieldSecurityCameraCount:
+		m.ResetSecurityCameraCount()
+		return nil
+	case user.FieldRobEndAt:
+		m.ResetRobEndAt()
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)

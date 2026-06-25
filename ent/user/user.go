@@ -27,6 +27,14 @@ const (
 	FieldDailyProfitEarned = "daily_profit_earned"
 	// FieldLastDailyResetAt holds the string denoting the last_daily_reset_at field in the database.
 	FieldLastDailyResetAt = "last_daily_reset_at"
+	// FieldWeeklyProfitEarned holds the string denoting the weekly_profit_earned field in the database.
+	FieldWeeklyProfitEarned = "weekly_profit_earned"
+	// FieldLastWeeklyResetAt holds the string denoting the last_weekly_reset_at field in the database.
+	FieldLastWeeklyResetAt = "last_weekly_reset_at"
+	// FieldSecurityCameraCount holds the string denoting the security_camera_count field in the database.
+	FieldSecurityCameraCount = "security_camera_count"
+	// FieldRobEndAt holds the string denoting the rob_end_at field in the database.
+	FieldRobEndAt = "rob_end_at"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 )
@@ -41,6 +49,10 @@ var Columns = []string{
 	FieldWorkEndAt,
 	FieldDailyProfitEarned,
 	FieldLastDailyResetAt,
+	FieldWeeklyProfitEarned,
+	FieldLastWeeklyResetAt,
+	FieldSecurityCameraCount,
+	FieldRobEndAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -68,6 +80,14 @@ var (
 	DefaultDailyProfitEarned int64
 	// DefaultLastDailyResetAt holds the default value on creation for the "last_daily_reset_at" field.
 	DefaultLastDailyResetAt time.Time
+	// DefaultWeeklyProfitEarned holds the default value on creation for the "weekly_profit_earned" field.
+	DefaultWeeklyProfitEarned int64
+	// DefaultLastWeeklyResetAt holds the default value on creation for the "last_weekly_reset_at" field.
+	DefaultLastWeeklyResetAt time.Time
+	// DefaultSecurityCameraCount holds the default value on creation for the "security_camera_count" field.
+	DefaultSecurityCameraCount int64
+	// DefaultRobEndAt holds the default value on creation for the "rob_end_at" field.
+	DefaultRobEndAt time.Time
 )
 
 // OrderOption defines the ordering options for the User queries.
@@ -111,4 +131,24 @@ func ByDailyProfitEarned(opts ...sql.OrderTermOption) OrderOption {
 // ByLastDailyResetAt orders the results by the last_daily_reset_at field.
 func ByLastDailyResetAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastDailyResetAt, opts...).ToFunc()
+}
+
+// ByWeeklyProfitEarned orders the results by the weekly_profit_earned field.
+func ByWeeklyProfitEarned(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWeeklyProfitEarned, opts...).ToFunc()
+}
+
+// ByLastWeeklyResetAt orders the results by the last_weekly_reset_at field.
+func ByLastWeeklyResetAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastWeeklyResetAt, opts...).ToFunc()
+}
+
+// BySecurityCameraCount orders the results by the security_camera_count field.
+func BySecurityCameraCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSecurityCameraCount, opts...).ToFunc()
+}
+
+// ByRobEndAt orders the results by the rob_end_at field.
+func ByRobEndAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRobEndAt, opts...).ToFunc()
 }

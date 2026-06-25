@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"alt-bot/ent"
-	"alt-bot/ent/user"
 )
 
 const (
@@ -31,16 +30,6 @@ type weightedCasinoOutcome struct {
 	symbols    []string
 }
 
-func (s *EconomyService) PlayBlackjack(ctx context.Context, discordID string, bet int64) (CasinoPlayResult, error) {
-	outcomes := []weightedCasinoOutcome{
-		{weight: 70, multiplier: 2.0, symbols: []string{"BLACKJACK", "A+10"}},
-		{weight: 350, multiplier: 1.8, symbols: []string{"WIN", "20 vs 18"}},
-		{weight: 240, multiplier: 1.0, symbols: []string{"PUSH", "19 vs 19"}},
-		{weight: 340, multiplier: 0.0, symbols: []string{"LOSE", "BUST"}},
-	}
-	return s.playWeightedCasino(ctx, discordID, bet, "casino_blackjack", outcomes, s.casinoRTPBlackjack)
-}
-
 func (s *EconomyService) PlayChinchiro(ctx context.Context, discordID string, bet int64) (CasinoPlayResult, error) {
 	outcomes := []weightedCasinoOutcome{
 		{weight: 10, multiplier: 4.0, symbols: []string{"123", "Hifumi Win"}},
@@ -50,18 +39,6 @@ func (s *EconomyService) PlayChinchiro(ctx context.Context, discordID string, be
 		{weight: 480, multiplier: 0.0, symbols: []string{"Point Lose", "Normal"}},
 	}
 	return s.playWeightedCasino(ctx, discordID, bet, "casino_chinchiro", outcomes, s.casinoRTPChinchiro)
-}
-
-func (s *EconomyService) PlayMines(ctx context.Context, discordID string, bet int64) (CasinoPlayResult, error) {
-	outcomes := []weightedCasinoOutcome{
-		{weight: 520, multiplier: 0.0, symbols: []string{"BOOM", "Mine"}},
-		{weight: 220, multiplier: 1.2, symbols: []string{"SAFE", "x1"}},
-		{weight: 150, multiplier: 1.6, symbols: []string{"SAFE", "x2"}},
-		{weight: 80, multiplier: 2.4, symbols: []string{"SAFE", "x3"}},
-		{weight: 25, multiplier: 3.6, symbols: []string{"SAFE", "x4"}},
-		{weight: 5, multiplier: 6.0, symbols: []string{"JACKPOT", "x5"}},
-	}
-	return s.playWeightedCasino(ctx, discordID, bet, "casino_mines", outcomes, s.casinoRTPMines)
 }
 
 func (s *EconomyService) PlayPoker(ctx context.Context, discordID string, bet int64) (CasinoPlayResult, error) {
@@ -106,29 +83,18 @@ func (s *EconomyService) playWeightedCasino(ctx context.Context, discordID strin
 	var result CasinoPlayResult
 	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
-		u, err := tx.User.Query().
-			Where(user.DiscordID(discordID)).
-			ForUpdate().
-			Only(ctx)
+		u, err := s.lockOrCreateUserForUpdateTx(ctx, tx, discordID, "casino")
 		if err != nil {
-			if ent.IsNotFound(err) {
-				u, err = tx.User.Create().
-					SetDiscordID(discordID).
-					SetBalance(0).
-					SetCryptoBalance(0).
-					SetXp(0).
-					SetWorkEndAt(time.Unix(0, 0).UTC()).
-					Save(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to create user in casino: %w", err)
-				}
-			} else {
-				return fmt.Errorf("failed to load user in casino: %w", err)
-			}
+			return err
 		}
 
 		if u.Balance < totalCost {
 			return &InsufficientYenError{Need: totalCost, Have: u.Balance}
+		}
+		if net > 0 {
+			if err := s.recordProfitCapsTx(ctx, tx, u, net, time.Now().UTC()); err != nil {
+				return err
+			}
 		}
 
 		newBalance := u.Balance - totalCost + payout

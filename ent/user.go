@@ -31,7 +31,15 @@ type User struct {
 	DailyProfitEarned int64 `json:"daily_profit_earned,omitempty"`
 	// LastDailyResetAt holds the value of the "last_daily_reset_at" field.
 	LastDailyResetAt time.Time `json:"last_daily_reset_at,omitempty"`
-	selectValues     sql.SelectValues
+	// WeeklyProfitEarned holds the value of the "weekly_profit_earned" field.
+	WeeklyProfitEarned int64 `json:"weekly_profit_earned,omitempty"`
+	// LastWeeklyResetAt holds the value of the "last_weekly_reset_at" field.
+	LastWeeklyResetAt time.Time `json:"last_weekly_reset_at,omitempty"`
+	// SecurityCameraCount holds the value of the "security_camera_count" field.
+	SecurityCameraCount int64 `json:"security_camera_count,omitempty"`
+	// RobEndAt holds the value of the "rob_end_at" field.
+	RobEndAt     time.Time `json:"rob_end_at,omitempty"`
+	selectValues sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -39,11 +47,11 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldID, user.FieldBalance, user.FieldCryptoBalance, user.FieldXp, user.FieldDailyProfitEarned:
+		case user.FieldID, user.FieldBalance, user.FieldCryptoBalance, user.FieldXp, user.FieldDailyProfitEarned, user.FieldWeeklyProfitEarned, user.FieldSecurityCameraCount:
 			values[i] = new(sql.NullInt64)
 		case user.FieldDiscordID:
 			values[i] = new(sql.NullString)
-		case user.FieldWorkEndAt, user.FieldLastDailyResetAt:
+		case user.FieldWorkEndAt, user.FieldLastDailyResetAt, user.FieldLastWeeklyResetAt, user.FieldRobEndAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -108,6 +116,30 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.LastDailyResetAt = value.Time
 			}
+		case user.FieldWeeklyProfitEarned:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field weekly_profit_earned", values[i])
+			} else if value.Valid {
+				_m.WeeklyProfitEarned = value.Int64
+			}
+		case user.FieldLastWeeklyResetAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_weekly_reset_at", values[i])
+			} else if value.Valid {
+				_m.LastWeeklyResetAt = value.Time
+			}
+		case user.FieldSecurityCameraCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field security_camera_count", values[i])
+			} else if value.Valid {
+				_m.SecurityCameraCount = value.Int64
+			}
+		case user.FieldRobEndAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field rob_end_at", values[i])
+			} else if value.Valid {
+				_m.RobEndAt = value.Time
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -164,6 +196,18 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("last_daily_reset_at=")
 	builder.WriteString(_m.LastDailyResetAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("weekly_profit_earned=")
+	builder.WriteString(fmt.Sprintf("%v", _m.WeeklyProfitEarned))
+	builder.WriteString(", ")
+	builder.WriteString("last_weekly_reset_at=")
+	builder.WriteString(_m.LastWeeklyResetAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("security_camera_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SecurityCameraCount))
+	builder.WriteString(", ")
+	builder.WriteString("rob_end_at=")
+	builder.WriteString(_m.RobEndAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

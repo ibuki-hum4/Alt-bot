@@ -38,7 +38,7 @@ func HandleCasino(economy *service.EconomyService, event *events.ApplicationComm
 	case "mines":
 		handleMines(event, guildID, economy)
 	case "poker":
-		HandlePoker(event, economy)
+		handlePoker(event, guildID, economy)
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のサブコマンドです。").

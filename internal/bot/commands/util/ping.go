@@ -41,25 +41,24 @@ func HandlePing(logger zerolog.Logger, event *events.ApplicationCommandInteracti
 		logger.Error().Err(err).Msg("failed to defer ping response")
 		return
 	}
-	responseAPILatency := time.Since(deferStart)
-
-	embed := discord.NewEmbedBuilder().
-		SetTitle("Pong").
-		SetDescription("レイテンシ計測").
-		SetColor(0x3498DB).
-		AddField("WebSocket", formatLatencyMS(websocketLatency), true).
-		AddField("Command受信", formatLatencyMS(commandReceivedLatency), true).
-		AddField("応答API", formatLatencyMS(responseAPILatency), true).
-		SetTimestamp(now).
-		Build()
+	apiLatency := time.Since(deferStart)
 
 	if _, err := event.Client().Rest().UpdateInteractionResponse(
 		event.ApplicationID(),
 		event.Token(),
 		discord.NewMessageUpdateBuilder().
-			SetEmbeds(embed).
+			SetEmbeds(discord.NewEmbedBuilder().
+				SetTitle("Pong").
+				SetDescription("レイテンシ計測").
+				SetColor(0x3498DB).
+				AddField("WebSocket", formatLatencyMS(websocketLatency), true).
+				AddField("Command受信", formatLatencyMS(commandReceivedLatency), true).
+				AddField("API", formatLatencyMS(apiLatency), true).
+				SetTimestamp(now).
+				Build()).
 			Build(),
 	); err != nil {
 		logger.Error().Err(err).Msg("failed to update ping response")
+		return
 	}
 }

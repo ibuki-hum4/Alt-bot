@@ -4,7 +4,6 @@ import (
 	"context"
 	crand "crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -13,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"alt-bot/internal/bot/commands/uierr"
 	"alt-bot/internal/service"
 
 	"github.com/disgoorg/disgo/discord"
@@ -63,16 +63,12 @@ func handleMines(event *events.ApplicationCommandInteractionCreate, guildID snow
 
 	balance, err := economy.MinesPlaceBet(ctx, event.User().ID.String(), bet)
 	if err != nil {
-		var insufficient *service.InsufficientYenError
-		if errors.As(err, &insufficient) {
-			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-				SetContent(fmt.Sprintf("Yen不足です。必要: %d %s / 現在: %d %s", insufficient.Need, service.CurrencyYenUnit, insufficient.Have, service.CurrencyYenUnit)).
-				SetEphemeral(true).
-				Build())
-			return
+		message, ok := uierr.Format(err, "獲得")
+		if !ok {
+			message = "mines の開始に失敗しました。少し待って再試行してください。"
 		}
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("mines の開始に失敗しました。少し待って再試行してください。").
+			SetContent(message).
 			SetEphemeral(true).
 			Build())
 		return
@@ -154,8 +150,12 @@ func HandleMinesComponent(economy *service.EconomyService, event *events.Compone
 		defer cancel()
 		balance, err := economy.MinesCashout(ctx, s.UserID, payout)
 		if err != nil {
+			message, ok := uierr.Format(err, "獲得")
+			if !ok {
+				message = "cashout の処理に失敗しました。少し待って再試行してください。"
+			}
 			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-				SetContent("cashout の処理に失敗しました。少し待って再試行してください。").
+				SetContent(message).
 				SetEphemeral(true).
 				Build())
 			return

@@ -223,4 +223,20 @@ func init() {
 	userDescLastDailyResetAt := userFields[6].Descriptor()
 	// user.DefaultLastDailyResetAt holds the default value on creation for the last_daily_reset_at field.
 	user.DefaultLastDailyResetAt = userDescLastDailyResetAt.Default.(time.Time)
+	// userDescWeeklyProfitEarned is the schema descriptor for weekly_profit_earned field.
+	userDescWeeklyProfitEarned := userFields[7].Descriptor()
+	// user.DefaultWeeklyProfitEarned holds the default value on creation for the weekly_profit_earned field.
+	user.DefaultWeeklyProfitEarned = userDescWeeklyProfitEarned.Default.(int64)
+	// userDescLastWeeklyResetAt is the schema descriptor for last_weekly_reset_at field.
+	userDescLastWeeklyResetAt := userFields[8].Descriptor()
+	// user.DefaultLastWeeklyResetAt holds the default value on creation for the last_weekly_reset_at field.
+	user.DefaultLastWeeklyResetAt = userDescLastWeeklyResetAt.Default.(time.Time)
+	// userDescSecurityCameraCount is the schema descriptor for security_camera_count field.
+	userDescSecurityCameraCount := userFields[9].Descriptor()
+	// user.DefaultSecurityCameraCount holds the default value on creation for the security_camera_count field.
+	user.DefaultSecurityCameraCount = userDescSecurityCameraCount.Default.(int64)
+	// userDescRobEndAt is the schema descriptor for rob_end_at field.
+	userDescRobEndAt := userFields[10].Descriptor()
+	// user.DefaultRobEndAt holds the default value on creation for the rob_end_at field.
+	user.DefaultRobEndAt = userDescRobEndAt.Default.(time.Time)
 }

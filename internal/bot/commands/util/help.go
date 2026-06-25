@@ -11,7 +11,7 @@ func HandleHelp(event *events.ApplicationCommandInteractionCreate) {
 		SetDescription("利用できるコマンド一覧です").
 		SetColor(0x5865F2).
 		AddField("Utility", "/help, /ping, /news channel|off|status, /rate, /chart [limit]", false).
-		AddField("Economy", "/work, /crypto buy|sell amount", false).
+		AddField("Economy", "/work, /pay user amount [note], /rob target, /shop list|buy item amount, /crypto buy|sell amount", false).
 		AddField("Casino", "/casino blackjack|chinchiro|mines|poker amount", false).
 		AddField("Moderation", "/mod kick|ban|mute user ...", false).
 		AddField("Admin", "/commands reload (Bot Owner only)", false).

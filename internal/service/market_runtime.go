@@ -137,9 +137,9 @@ func tradeLimitForLevel(level CircuitLevel) int64 {
 func effectiveDailyCap(eventType EventType) int64 {
 	cap := baseDailyIssuanceCap
 	switch eventType {
-	case EventMoon, EventFOMO, EventGoldenCross:
+	case EventMoon, EventFOMO, EventGoldenCross, EventETFApproval, EventHalving:
 		cap = int64(math.Round(float64(cap) * 1.2))
-	case EventCrash, EventRegulation, EventDeflationShock:
+	case EventCrash, EventRegulation, EventDeflationShock, EventHackAlert, EventStablecoinDepeg:
 		cap = int64(math.Round(float64(cap) * 0.9))
 	}
 	if cap < 5000 {
@@ -381,6 +381,18 @@ func (s *EconomyService) eventMultiplier(eventType EventType) float64 {
 		return 0.96
 	case EventGoldenCross:
 		return 1.04
+	case EventHackAlert:
+		return 0.85
+	case EventAirdrop:
+		return 0.98
+	case EventETFApproval:
+		return 1.16
+	case EventStablecoinDepeg:
+		return 0.87
+	case EventHalving:
+		return 1.10
+	case EventMemeRally:
+		return 1.13
 	default:
 		return 1.0
 	}
@@ -694,6 +706,8 @@ func eventDurationTicks(eventType EventType) int {
 		return 3
 	case EventStagnation:
 		return 5
+	case EventHalving:
+		return 4
 	default:
 		return 1
 	}

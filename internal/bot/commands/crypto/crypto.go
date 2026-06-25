@@ -2,13 +2,13 @@ package crypto
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 	"time"
 
+	"alt-bot/internal/bot/commands/uierr"
 	"alt-bot/internal/service"
 
 	"github.com/disgoorg/disgo/bot"
@@ -23,12 +23,6 @@ const (
 )
 
 func HandleCryptoSlash(logger zerolog.Logger, economy *service.EconomyService, event *events.ApplicationCommandInteractionCreate) {
-	// 経済機能無効化: 即時応答
-	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent("経済機能は現在無効化されています。/crypto は利用できません。").
-		SetEphemeral(true).
-		Build())
-	return
 	data := event.SlashCommandInteractionData()
 	if data.SubCommandName == nil {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -99,13 +93,6 @@ func HandleCryptoSlash(logger zerolog.Logger, economy *service.EconomyService, e
 }
 
 func HandleCryptoComponent(logger zerolog.Logger, economy *service.EconomyService, event *events.ComponentInteractionCreate) {
-	// 経済機能無効化: 即時応答
-	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent("経済機能は現在無効化されています。操作は行えません。").
-		SetEphemeral(true).
-		Build())
-	return
-
 	customID := event.Data.CustomID()
 	parts := strings.Split(customID, ":")
 	if len(parts) < 4 || parts[0] != "crypto" {
@@ -131,7 +118,10 @@ func HandleCryptoComponent(logger zerolog.Logger, economy *service.EconomyServic
 				SetDescription("確認の有効期限が切れました。再度 /crypto を実行してください。").
 				SetColor(0x95A5A6).
 				Build()
-			_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().SetEmbeds(embed).ClearContainerComponents().Build())
+			_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().
+				SetEmbeds(embed).
+				ClearContainerComponents().
+				Build())
 			return
 		}
 		embed := discord.NewEmbedBuilder().
@@ -219,6 +209,42 @@ func HandleCryptoComponent(logger zerolog.Logger, economy *service.EconomyServic
 	}
 }
 
+func updateCryptoError(logger zerolog.Logger, event *events.ComponentInteractionCreate, err error, confirmID string, cancelID string) {
+	desc, ok := uierr.Format(err, "獲得")
+	if !ok {
+		logger.Error().Err(err).Msg("crypto confirm failed")
+		desc = "処理中にエラーが発生しました。時間をおいて再試行してください。"
+	}
+
+	embed := discord.NewEmbedBuilder().
+		SetTitle("取引エラー").
+		SetDescription(desc).
+		SetColor(0xE74C3C).
+		Build()
+
+	_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().
+		SetEmbeds(embed).
+		SetContainerComponents(cryptoDisabledRow(confirmID, cancelID)).
+		Build())
+}
+
+func scheduleDisableInteractionButtons(logger zerolog.Logger, client bot.Client, token string, d time.Duration, row discord.ContainerComponent) {
+	go func() {
+		t := time.NewTimer(d)
+		defer t.Stop()
+		<-t.C
+
+		_, err := client.Rest().UpdateInteractionResponse(
+			client.ApplicationID(),
+			token,
+			discord.NewMessageUpdateBuilder().SetContainerComponents(row).Build(),
+		)
+		if err != nil {
+			logger.Debug().Err(err).Msg("failed to disable expired interaction buttons")
+		}
+	}()
+}
+
 func cryptoDisabledRow(confirmID string, cancelID string) discord.ContainerComponent {
 	confirm := discord.NewSuccessButton("確定", confirmID)
 	confirm.Disabled = true
@@ -265,62 +291,4 @@ func parseCryptoCancelID(customID string) (string, int64, error) {
 		return "", 0, err
 	}
 	return parts[2], expiresAt, nil
-}
-
-func updateCryptoError(logger zerolog.Logger, event *events.ComponentInteractionCreate, err error, confirmID string, cancelID string) {
-	desc := "処理中にエラーが発生しました。時間をおいて再試行してください。"
-	var yenErr *service.InsufficientYenError
-	if errors.As(err, &yenErr) {
-		desc = fmt.Sprintf("Yenが不足しています。必要: %d / 現在: %d", yenErr.Need, yenErr.Have)
-	} else {
-		var altErr *service.InsufficientALTError
-		if errors.As(err, &altErr) {
-			desc = fmt.Sprintf("ALTokenが不足しています。必要: %d / 現在: %d", altErr.Need, altErr.Have)
-		} else {
-			var haltedErr *service.MarketHaltedError
-			if errors.As(err, &haltedErr) {
-				desc = "市場は緊急停止中です。30分安定後に自動解除されます。"
-			} else {
-				var limitErr *service.CircuitLimitError
-				if errors.As(err, &limitErr) {
-					desc = fmt.Sprintf("サーキット制限により注文上限を超えました。現在の上限: %d ALT", limitErr.MaxQty)
-				} else {
-					var issuanceErr *service.DailyIssuanceCapError
-					if errors.As(err, &issuanceErr) {
-						desc = fmt.Sprintf("本日の発行上限に達しました。上限: %d / 既発行: %d", issuanceErr.Cap, issuanceErr.Issued)
-					} else {
-						logger.Error().Err(err).Msg("crypto confirm failed")
-					}
-				}
-			}
-		}
-	}
-
-	embed := discord.NewEmbedBuilder().
-		SetTitle("取引エラー").
-		SetDescription(desc).
-		SetColor(0xE74C3C).
-		Build()
-
-	_ = event.UpdateMessage(discord.NewMessageUpdateBuilder().
-		SetEmbeds(embed).
-		SetContainerComponents(cryptoDisabledRow(confirmID, cancelID)).
-		Build())
-}
-
-func scheduleDisableInteractionButtons(logger zerolog.Logger, client bot.Client, token string, d time.Duration, row discord.ContainerComponent) {
-	go func() {
-		t := time.NewTimer(d)
-		defer t.Stop()
-		<-t.C
-
-		_, err := client.Rest().UpdateInteractionResponse(
-			client.ApplicationID(),
-			token,
-			discord.NewMessageUpdateBuilder().SetContainerComponents(row).Build(),
-		)
-		if err != nil {
-			logger.Debug().Err(err).Msg("failed to disable expired interaction buttons")
-		}
-	}()
 }

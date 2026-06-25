@@ -3,12 +3,12 @@ package casino
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"alt-bot/internal/bot/commands/uierr"
 	"alt-bot/internal/service"
 
 	"github.com/disgoorg/disgo/discord"
@@ -130,16 +130,12 @@ func HandleCasinoComponent(economy *service.EconomyService, event *events.Compon
 
 	res, playErr := executeCasinoGame(ctx, economy, s)
 	if playErr != nil {
-		var insufficient *service.InsufficientYenError
-		if errors.As(playErr, &insufficient) {
-			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-				SetContent(fmt.Sprintf("Yen不足です。必要: %d %s / 現在: %d %s", insufficient.Need, service.CurrencyYenUnit, insufficient.Have, service.CurrencyYenUnit)).
-				SetEphemeral(true).
-				Build())
-			return
+		message, ok := uierr.Format(playErr, "獲得")
+		if !ok {
+			message = "カジノ実行中にエラーが発生しました。少し待って再試行してください。"
 		}
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("カジノ実行中にエラーが発生しました。少し待って再試行してください。").
+			SetContent(message).
 			SetEphemeral(true).
 			Build())
 		return
@@ -178,14 +174,9 @@ func HandleCasinoComponent(economy *service.EconomyService, event *events.Compon
 		)).
 		Build())
 
-	if s.Game == "blackjack" || s.Game == "chinchiro" {
+	if s.Game == "chinchiro" {
 		if pngBytes, renderErr := renderCasinoResultPNG(s.Game, res); renderErr == nil {
 			fileName := fmt.Sprintf("%s-result.png", s.Game)
-			if s.Game == "blackjack" {
-				fileName = "blackjack-result.png"
-			} else if s.Game == "chinchiro" {
-				fileName = "chinchiro-result.png"
-			}
 			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 				SetContent(fmt.Sprintf("%s の画像結果です。", s.Title)).
 				AddFile(fileName, s.Title+" result", bytes.NewReader(pngBytes)).
@@ -197,10 +188,10 @@ func HandleCasinoComponent(economy *service.EconomyService, event *events.Compon
 
 func executeCasinoGame(ctx context.Context, economy *service.EconomyService, s casinoSession) (service.CasinoPlayResult, error) {
 	switch s.Game {
-	case "blackjack":
-		return economy.PlayBlackjack(ctx, s.UserID, s.Bet)
 	case "chinchiro":
 		return economy.PlayChinchiro(ctx, s.UserID, s.Bet)
+	case "poker":
+		return economy.PlayPoker(ctx, s.UserID, s.Bet)
 	default:
 		return service.CasinoPlayResult{}, fmt.Errorf("unknown casino game")
 	}
@@ -263,6 +254,8 @@ func casinoLabels(game string, option string) (string, string) {
 		return "Chinchiro", "出目を見比べよう。"
 	case "mines":
 		return "Mines", "安全マスを引けるか挑戦。"
+	case "poker":
+		return "Poker", "手札の強さで結果が決まります。"
 	default:
 		return "Casino", "カジノセッション"
 	}

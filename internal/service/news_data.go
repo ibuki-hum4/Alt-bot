@@ -5,19 +5,25 @@ import "fmt"
 type EventType string
 
 const (
-	EventCrash          EventType = "CRASH"
-	EventMoon           EventType = "MOON"
-	EventHoliday        EventType = "HOLIDAY"
-	EventStagnation     EventType = "STAGNATION"
-	EventWhaleAlert     EventType = "WHALE_ALERT"
-	EventBurnEvent      EventType = "BURN_EVENT"
-	EventFOMO           EventType = "FOMO"
-	EventInsiderLeak    EventType = "INSIDER_LEAK"
-	EventBubble         EventType = "BUBBLE"
-	EventShortSqueeze   EventType = "SHORT_SQUEEZE"
-	EventRegulation     EventType = "REGULATION"
-	EventDeflationShock EventType = "DEFLATION_SHOCK"
-	EventGoldenCross    EventType = "GOLDEN_CROSS"
+	EventCrash           EventType = "CRASH"
+	EventMoon            EventType = "MOON"
+	EventHoliday         EventType = "HOLIDAY"
+	EventStagnation      EventType = "STAGNATION"
+	EventWhaleAlert      EventType = "WHALE_ALERT"
+	EventBurnEvent       EventType = "BURN_EVENT"
+	EventFOMO            EventType = "FOMO"
+	EventInsiderLeak     EventType = "INSIDER_LEAK"
+	EventBubble          EventType = "BUBBLE"
+	EventShortSqueeze    EventType = "SHORT_SQUEEZE"
+	EventRegulation      EventType = "REGULATION"
+	EventDeflationShock  EventType = "DEFLATION_SHOCK"
+	EventGoldenCross     EventType = "GOLDEN_CROSS"
+	EventHackAlert       EventType = "HACK_ALERT"
+	EventAirdrop         EventType = "AIRDROP"
+	EventETFApproval     EventType = "ETF_APPROVAL"
+	EventStablecoinDepeg EventType = "STABLECOIN_DEPEG"
+	EventHalving         EventType = "HALVING"
+	EventMemeRally       EventType = "MEME_RALLY"
 )
 
 type NewsStory struct {
@@ -105,6 +111,42 @@ var NewsStories = map[EventType]NewsStory{
 		Description: "テクニカル指標が歴史的な強気サインを点灯。今、仕事に励んで資金を作れば、大きなリターンが期待できるでしょう。",
 		Color:       0xF39C12,
 		ImpactLevel: "マイルド",
+	},
+	EventHackAlert: {
+		Title:       "【速報】大手取引所ハッキング被害",
+		Description: "大手取引所のコールドウォレットが攻撃を受け、大量のALTokenが流出したと報じられました。市場全体に不信感が広がっています。",
+		Color:       0x922B21,
+		ImpactLevel: "激甚",
+	},
+	EventAirdrop: {
+		Title:       "サプライズ・エアドロップ",
+		Description: "財団が記念キャンペーンとしてALTokenを保有者に追加配布。供給量増加への警戒からやや弱含みの展開です。",
+		Color:       0x5DADE2,
+		ImpactLevel: "マイルド",
+	},
+	EventETFApproval: {
+		Title:       "【速報】ALToken ETF 承認",
+		Description: "規制当局がALToken連動型ETFの上場を承認したと発表。機関投資家の資金流入期待から買いが加速しています！",
+		Color:       0xFFD700,
+		ImpactLevel: "激甚",
+	},
+	EventStablecoinDepeg: {
+		Title:       "ステーブルコイン・デペグ危機",
+		Description: "連動先資産との価格が大きくズレる「デペグ」が発生し、関連市場全体に連鎖的な売りが広がっています。",
+		Color:       0xA93226,
+		ImpactLevel: "激甚",
+	},
+	EventHalving: {
+		Title:       "発行半減期(ハービング)到来",
+		Description: "プロトコルの定期イベントにより新規発行量が半減しました。供給縮小の思惑から緩やかな上昇基調が続いています。",
+		Color:       0xD4AC0D,
+		ImpactLevel: "注意",
+	},
+	EventMemeRally: {
+		Title:       "ミームの祭典・狂乱の宴",
+		Description: "SNS発の謎の盛り上がりで投機マネーが一気に流入。理屈抜きの熱狂が短期的な急騰を演出しています。",
+		Color:       0xFF85C0,
+		ImpactLevel: "激甚",
 	},
 }
 

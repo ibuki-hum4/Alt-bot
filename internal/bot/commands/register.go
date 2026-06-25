@@ -22,6 +22,66 @@ func Definitions() []discord.ApplicationCommandCreate {
 			Description: "仕事でYenを稼ぎます(ボタン選択)",
 		},
 		discord.SlashCommandCreate{
+			Name:        "pay",
+			Description: "他ユーザーへYenを送金",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionUser{
+					Name:        "user",
+					Description: "送金先ユーザー",
+					Required:    true,
+				},
+				discord.ApplicationCommandOptionInt{
+					Name:        "amount",
+					Description: "送金額",
+					Required:    true,
+					MinValue:    intPointer(1),
+				},
+				discord.ApplicationCommandOptionString{
+					Name:        "note",
+					Description: "メモ(任意)",
+					Required:    false,
+				},
+			},
+		},
+		discord.SlashCommandCreate{
+			Name:        "rob",
+			Description: "他ユーザーからYenを強奪(失敗すると罰金、防犯カメラで防御可)",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionUser{
+					Name:        "target",
+					Description: "強奪対象ユーザー",
+					Required:    true,
+				},
+			},
+		},
+		discord.SlashCommandCreate{
+			Name:        "shop",
+			Description: "ショップで商品を購入",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "list",
+					Description: "購入可能な商品一覧を表示",
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "buy",
+					Description: "商品を購入",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "item",
+							Description: "商品ID",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionInt{
+							Name:        "amount",
+							Description: "購入数",
+							Required:    true,
+							MinValue:    intPointer(1),
+						},
+					},
+				},
+			},
+		},
+		discord.SlashCommandCreate{
 			Name:        "crypto",
 			Description: "ALTokenを売買します",
 			Options: []discord.ApplicationCommandOption{

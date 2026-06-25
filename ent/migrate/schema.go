@@ -55,6 +55,13 @@ var (
 		Name:       "price_histories",
 		Columns:    PriceHistoriesColumns,
 		PrimaryKey: []*schema.Column{PriceHistoriesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pricehistory_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{PriceHistoriesColumns[2]},
+			},
+		},
 	}
 	// RolePanelsColumns holds the columns for the "role_panels" table.
 	RolePanelsColumns = []*schema.Column{
@@ -144,6 +151,10 @@ var (
 		{Name: "work_end_at", Type: field.TypeTime},
 		{Name: "daily_profit_earned", Type: field.TypeInt64, Default: 0},
 		{Name: "last_daily_reset_at", Type: field.TypeTime},
+		{Name: "weekly_profit_earned", Type: field.TypeInt64, Default: 0},
+		{Name: "last_weekly_reset_at", Type: field.TypeTime},
+		{Name: "security_camera_count", Type: field.TypeInt64, Default: 0},
+		{Name: "rob_end_at", Type: field.TypeTime},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

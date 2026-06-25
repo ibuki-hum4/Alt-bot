@@ -89,6 +89,26 @@ func LastDailyResetAt(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldLastDailyResetAt, v))
 }
 
+// WeeklyProfitEarned applies equality check predicate on the "weekly_profit_earned" field. It's identical to WeeklyProfitEarnedEQ.
+func WeeklyProfitEarned(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldWeeklyProfitEarned, v))
+}
+
+// LastWeeklyResetAt applies equality check predicate on the "last_weekly_reset_at" field. It's identical to LastWeeklyResetAtEQ.
+func LastWeeklyResetAt(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldLastWeeklyResetAt, v))
+}
+
+// SecurityCameraCount applies equality check predicate on the "security_camera_count" field. It's identical to SecurityCameraCountEQ.
+func SecurityCameraCount(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSecurityCameraCount, v))
+}
+
+// RobEndAt applies equality check predicate on the "rob_end_at" field. It's identical to RobEndAtEQ.
+func RobEndAt(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldRobEndAt, v))
+}
+
 // DiscordIDEQ applies the EQ predicate on the "discord_id" field.
 func DiscordIDEQ(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldDiscordID, v))
@@ -392,6 +412,166 @@ func LastDailyResetAtLT(v time.Time) predicate.User {
 // LastDailyResetAtLTE applies the LTE predicate on the "last_daily_reset_at" field.
 func LastDailyResetAtLTE(v time.Time) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldLastDailyResetAt, v))
+}
+
+// WeeklyProfitEarnedEQ applies the EQ predicate on the "weekly_profit_earned" field.
+func WeeklyProfitEarnedEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldWeeklyProfitEarned, v))
+}
+
+// WeeklyProfitEarnedNEQ applies the NEQ predicate on the "weekly_profit_earned" field.
+func WeeklyProfitEarnedNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldWeeklyProfitEarned, v))
+}
+
+// WeeklyProfitEarnedIn applies the In predicate on the "weekly_profit_earned" field.
+func WeeklyProfitEarnedIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldWeeklyProfitEarned, vs...))
+}
+
+// WeeklyProfitEarnedNotIn applies the NotIn predicate on the "weekly_profit_earned" field.
+func WeeklyProfitEarnedNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldWeeklyProfitEarned, vs...))
+}
+
+// WeeklyProfitEarnedGT applies the GT predicate on the "weekly_profit_earned" field.
+func WeeklyProfitEarnedGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldWeeklyProfitEarned, v))
+}
+
+// WeeklyProfitEarnedGTE applies the GTE predicate on the "weekly_profit_earned" field.
+func WeeklyProfitEarnedGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldWeeklyProfitEarned, v))
+}
+
+// WeeklyProfitEarnedLT applies the LT predicate on the "weekly_profit_earned" field.
+func WeeklyProfitEarnedLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldWeeklyProfitEarned, v))
+}
+
+// WeeklyProfitEarnedLTE applies the LTE predicate on the "weekly_profit_earned" field.
+func WeeklyProfitEarnedLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldWeeklyProfitEarned, v))
+}
+
+// LastWeeklyResetAtEQ applies the EQ predicate on the "last_weekly_reset_at" field.
+func LastWeeklyResetAtEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldLastWeeklyResetAt, v))
+}
+
+// LastWeeklyResetAtNEQ applies the NEQ predicate on the "last_weekly_reset_at" field.
+func LastWeeklyResetAtNEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldLastWeeklyResetAt, v))
+}
+
+// LastWeeklyResetAtIn applies the In predicate on the "last_weekly_reset_at" field.
+func LastWeeklyResetAtIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldIn(FieldLastWeeklyResetAt, vs...))
+}
+
+// LastWeeklyResetAtNotIn applies the NotIn predicate on the "last_weekly_reset_at" field.
+func LastWeeklyResetAtNotIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldLastWeeklyResetAt, vs...))
+}
+
+// LastWeeklyResetAtGT applies the GT predicate on the "last_weekly_reset_at" field.
+func LastWeeklyResetAtGT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGT(FieldLastWeeklyResetAt, v))
+}
+
+// LastWeeklyResetAtGTE applies the GTE predicate on the "last_weekly_reset_at" field.
+func LastWeeklyResetAtGTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldLastWeeklyResetAt, v))
+}
+
+// LastWeeklyResetAtLT applies the LT predicate on the "last_weekly_reset_at" field.
+func LastWeeklyResetAtLT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLT(FieldLastWeeklyResetAt, v))
+}
+
+// LastWeeklyResetAtLTE applies the LTE predicate on the "last_weekly_reset_at" field.
+func LastWeeklyResetAtLTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldLastWeeklyResetAt, v))
+}
+
+// SecurityCameraCountEQ applies the EQ predicate on the "security_camera_count" field.
+func SecurityCameraCountEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSecurityCameraCount, v))
+}
+
+// SecurityCameraCountNEQ applies the NEQ predicate on the "security_camera_count" field.
+func SecurityCameraCountNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldSecurityCameraCount, v))
+}
+
+// SecurityCameraCountIn applies the In predicate on the "security_camera_count" field.
+func SecurityCameraCountIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldSecurityCameraCount, vs...))
+}
+
+// SecurityCameraCountNotIn applies the NotIn predicate on the "security_camera_count" field.
+func SecurityCameraCountNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldSecurityCameraCount, vs...))
+}
+
+// SecurityCameraCountGT applies the GT predicate on the "security_camera_count" field.
+func SecurityCameraCountGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldSecurityCameraCount, v))
+}
+
+// SecurityCameraCountGTE applies the GTE predicate on the "security_camera_count" field.
+func SecurityCameraCountGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldSecurityCameraCount, v))
+}
+
+// SecurityCameraCountLT applies the LT predicate on the "security_camera_count" field.
+func SecurityCameraCountLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldSecurityCameraCount, v))
+}
+
+// SecurityCameraCountLTE applies the LTE predicate on the "security_camera_count" field.
+func SecurityCameraCountLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldSecurityCameraCount, v))
+}
+
+// RobEndAtEQ applies the EQ predicate on the "rob_end_at" field.
+func RobEndAtEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldRobEndAt, v))
+}
+
+// RobEndAtNEQ applies the NEQ predicate on the "rob_end_at" field.
+func RobEndAtNEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldRobEndAt, v))
+}
+
+// RobEndAtIn applies the In predicate on the "rob_end_at" field.
+func RobEndAtIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldIn(FieldRobEndAt, vs...))
+}
+
+// RobEndAtNotIn applies the NotIn predicate on the "rob_end_at" field.
+func RobEndAtNotIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldRobEndAt, vs...))
+}
+
+// RobEndAtGT applies the GT predicate on the "rob_end_at" field.
+func RobEndAtGT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGT(FieldRobEndAt, v))
+}
+
+// RobEndAtGTE applies the GTE predicate on the "rob_end_at" field.
+func RobEndAtGTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldRobEndAt, v))
+}
+
+// RobEndAtLT applies the LT predicate on the "rob_end_at" field.
+func RobEndAtLT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLT(FieldRobEndAt, v))
+}
+
+// RobEndAtLTE applies the LTE predicate on the "rob_end_at" field.
+func RobEndAtLTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldRobEndAt, v))
 }
 
 // And groups predicates with the AND operator between them.

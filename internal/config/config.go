@@ -42,6 +42,7 @@ type Config struct {
 	RolePanelEnabled  bool            `mapstructure:"role_panel_enabled"`
 	ModEnabled        bool            `mapstructure:"mod_enabled"`
 	DailyProfitCap    int64           `mapstructure:"daily_profit_cap"`
+	WeeklyProfitCap   int64           `mapstructure:"weekly_profit_cap"`
 	MaxBetAmount      int64           `mapstructure:"max_bet_amount"`
 	MaxBetPercent     float64         `mapstructure:"max_bet_percent"`
 	CashoutFeePercent float64         `mapstructure:"cashout_fee_percent"`
@@ -60,6 +61,20 @@ type RolePanelRole struct {
 	Description string `mapstructure:"description"`
 }
 
+func bindEnv(v *viper.Viper, key string, envNames ...string) error {
+	args := append([]string{key}, envNames...)
+	if err := v.BindEnv(args...); err != nil {
+		return fmt.Errorf("failed to bind env %s: %w", key, err)
+	}
+	return nil
+}
+
+func setDefaults(v *viper.Viper, defaults map[string]any) {
+	for key, value := range defaults {
+		v.SetDefault(key, value)
+	}
+}
+
 func Load() (Config, error) {
 	v := viper.New()
 	v.SetConfigName("config")
@@ -69,150 +84,91 @@ func Load() (Config, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.SetEnvPrefix("ALTBOT")
 	v.AutomaticEnv()
-	if err := v.BindEnv("discord_token"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env discord_token: %w", err)
-	}
-	if err := v.BindEnv("database_url"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env database_url: %w", err)
-	}
-	if err := v.BindEnv("log_level"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env log_level: %w", err)
-	}
-	if err := v.BindEnv("time_zone"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env time_zone: %w", err)
-	}
-	if err := v.BindEnv("owner_id", "OWNER_ID", "ALTBOT_OWNER_ID", "ALTBOT_OWNER_IDS"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env owner_id: %w", err)
-	}
-	if err := v.BindEnv("market_gbm_mu"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env market_gbm_mu: %w", err)
-	}
-	if err := v.BindEnv("market_gbm_sigma"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env market_gbm_sigma: %w", err)
-	}
-	if err := v.BindEnv("market_passive_min"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env market_passive_min: %w", err)
-	}
-	if err := v.BindEnv("market_passive_max"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env market_passive_max: %w", err)
-	}
-	if err := v.BindEnv("market_mean_reversion"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env market_mean_reversion: %w", err)
-	}
-	if err := v.BindEnv("min_same_command_interval_ms"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env min_same_command_interval_ms: %w", err)
-	}
-	if err := v.BindEnv("slash_window_seconds"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env slash_window_seconds: %w", err)
-	}
-	if err := v.BindEnv("max_slash_per_window"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env max_slash_per_window: %w", err)
-	}
-	if err := v.BindEnv("component_window_seconds"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env component_window_seconds: %w", err)
-	}
-	if err := v.BindEnv("max_component_per_window"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env max_component_per_window: %w", err)
-	}
-	if err := v.BindEnv("chart_max_concurrent"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env chart_max_concurrent: %w", err)
-	}
-	if err := v.BindEnv("casino_rtp_blackjack"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env casino_rtp_blackjack: %w", err)
-	}
-	if err := v.BindEnv("casino_rtp_chinchiro"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env casino_rtp_chinchiro: %w", err)
-	}
-	if err := v.BindEnv("casino_rtp_poker"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env casino_rtp_poker: %w", err)
-	}
-	if err := v.BindEnv("casino_rtp_mines"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env casino_rtp_mines: %w", err)
-	}
-	if err := v.BindEnv("casino_enabled"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env casino_enabled: %w", err)
-	}
-	if err := v.BindEnv("crypto_enabled"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env crypto_enabled: %w", err)
-	}
-	if err := v.BindEnv("poker_enabled"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env poker_enabled: %w", err)
-	}
-	if err := v.BindEnv("mines_bomb_count"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env mines_bomb_count: %w", err)
-	}
-	if err := v.BindEnv("mines_initial_safe_pc"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env mines_initial_safe_pc: %w", err)
-	}
-	if err := v.BindEnv("role_panel_enabled"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env role_panel_enabled: %w", err)
-	}
-	if err := v.BindEnv("economy_enabled"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env economy_enabled: %w", err)
-	}
-	if err := v.BindEnv("mod_enabled"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env mod_enabled: %w", err)
-	}
-	if err := v.BindEnv("daily_profit_cap"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env daily_profit_cap: %w", err)
-	}
-	if err := v.BindEnv("max_bet_amount"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env max_bet_amount: %w", err)
-	}
-	if err := v.BindEnv("max_bet_percent"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env max_bet_percent: %w", err)
-	}
-	if err := v.BindEnv("cashout_fee_percent"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env cashout_fee_percent: %w", err)
-	}
-	if err := v.BindEnv("casino_fee_percent"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env casino_fee_percent: %w", err)
-	}
-	if err := v.BindEnv("high_value_tax_base"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env high_value_tax_base: %w", err)
-	}
-	if err := v.BindEnv("high_value_tax_rate"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env high_value_tax_rate: %w", err)
-	}
-	if err := v.BindEnv("role_panel_guild_ids"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env role_panel_guild_ids: %w", err)
-	}
-	if err := v.BindEnv("role_panel_roles"); err != nil {
-		return Config{}, fmt.Errorf("failed to bind env role_panel_roles: %w", err)
+	bindings := []struct {
+		key  string
+		envs []string
+	}{
+		{key: "discord_token"},
+		{key: "database_url"},
+		{key: "log_level"},
+		{key: "time_zone"},
+		{key: "owner_id", envs: []string{"OWNER_ID", "ALTBOT_OWNER_ID", "ALTBOT_OWNER_IDS"}},
+		{key: "market_gbm_mu"},
+		{key: "market_gbm_sigma"},
+		{key: "market_passive_min"},
+		{key: "market_passive_max"},
+		{key: "market_mean_reversion"},
+		{key: "min_same_command_interval_ms"},
+		{key: "slash_window_seconds"},
+		{key: "max_slash_per_window"},
+		{key: "component_window_seconds"},
+		{key: "max_component_per_window"},
+		{key: "chart_max_concurrent"},
+		{key: "casino_rtp_blackjack"},
+		{key: "casino_rtp_chinchiro"},
+		{key: "casino_rtp_poker"},
+		{key: "casino_rtp_mines"},
+		{key: "casino_enabled"},
+		{key: "crypto_enabled"},
+		{key: "poker_enabled"},
+		{key: "mines_bomb_count"},
+		{key: "mines_initial_safe_pc"},
+		{key: "role_panel_enabled"},
+		{key: "economy_enabled"},
+		{key: "mod_enabled"},
+		{key: "daily_profit_cap"},
+		{key: "weekly_profit_cap"},
+		{key: "max_bet_amount"},
+		{key: "max_bet_percent"},
+		{key: "cashout_fee_percent"},
+		{key: "casino_fee_percent"},
+		{key: "high_value_tax_base"},
+		{key: "high_value_tax_rate"},
+		{key: "role_panel_guild_ids"},
+		{key: "role_panel_roles"},
 	}
 
-	v.SetDefault("log_level", "info")
-	v.SetDefault("time_zone", "Asia/Tokyo")
-	v.SetDefault("market_gbm_mu", 0.00002)
-	v.SetDefault("market_gbm_sigma", 0.003)
-	v.SetDefault("market_passive_min", 0.996)
-	v.SetDefault("market_passive_max", 1.004)
-	v.SetDefault("market_mean_reversion", 0.18)
-	v.SetDefault("min_same_command_interval_ms", 800)
-	v.SetDefault("slash_window_seconds", 5)
-	v.SetDefault("max_slash_per_window", 8)
-	v.SetDefault("component_window_seconds", 4)
-	v.SetDefault("max_component_per_window", 12)
-	v.SetDefault("chart_max_concurrent", 2)
-	v.SetDefault("casino_rtp_blackjack", 0.945)
-	v.SetDefault("casino_rtp_chinchiro", 0.940)
-	v.SetDefault("casino_rtp_poker", 0.935)
-	v.SetDefault("casino_rtp_mines", 0.885)
-	v.SetDefault("casino_enabled", false)
-	v.SetDefault("crypto_enabled", true)
-	v.SetDefault("poker_enabled", false)
-	v.SetDefault("mines_bomb_count", 4)         // 爆弾数を3→4に増加
-	v.SetDefault("mines_initial_safe_pc", 0.88) // 初期安全率88%
-	v.SetDefault("mod_enabled", false)
-	v.SetDefault("role_panel_enabled", false)
-	v.SetDefault("economy_enabled", false)
-	v.SetDefault("daily_profit_cap", int64(5000000))     // 500万円（5M）
-	v.SetDefault("max_bet_amount", int64(1000000))       // 100万円（1M）
-	v.SetDefault("max_bet_percent", 0.1)                 // 10%
-	v.SetDefault("cashout_fee_percent", 0.05)            // 5% (キャッシュアウト手数料)
-	v.SetDefault("casino_fee_percent", 0.01)             // 1% (カジノ手数料)
-	v.SetDefault("high_value_tax_base", int64(10000))    // 1万円以上で課税
-	v.SetDefault("high_value_tax_rate", 0.15)            // 15% (基本税率)
+	for _, b := range bindings {
+		if err := bindEnv(v, b.key, b.envs...); err != nil {
+			return Config{}, err
+		}
+	}
+
+	setDefaults(v, map[string]any{
+		"log_level":                   "info",
+		"time_zone":                   "Asia/Tokyo",
+		"market_gbm_mu":               0.00002,
+		"market_gbm_sigma":            0.003,
+		"market_passive_min":          0.996,
+		"market_passive_max":          1.004,
+		"market_mean_reversion":       0.18,
+		"min_same_command_interval_ms": 800,
+		"slash_window_seconds":         5,
+		"max_slash_per_window":         8,
+		"component_window_seconds":     4,
+		"max_component_per_window":     12,
+		"chart_max_concurrent":         2,
+		"casino_rtp_blackjack":         0.945,
+		"casino_rtp_chinchiro":         0.940,
+		"casino_rtp_poker":             0.935,
+		"casino_rtp_mines":             0.885,
+		"casino_enabled":               false,
+		"crypto_enabled":               true,
+		"poker_enabled":                false,
+		"mines_bomb_count":             4,
+		"mines_initial_safe_pc":        0.88,
+		"mod_enabled":                  false,
+		"role_panel_enabled":           false,
+		"economy_enabled":              true,
+		"daily_profit_cap":             int64(3500000),
+		"weekly_profit_cap":            int64(15000000),
+		"max_bet_amount":               int64(1000000),
+		"max_bet_percent":              0.1,
+		"cashout_fee_percent":          0.05,
+		"casino_fee_percent":           0.01,
+		"high_value_tax_base":          int64(10000),
+		"high_value_tax_rate":          0.15,
+	})
 
 	if err := v.ReadInConfig(); err != nil {
 		_, _ = err.(viper.ConfigFileNotFoundError)

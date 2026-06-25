@@ -5,16 +5,16 @@ import (
 	"context"
 	crand "crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/rand"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"alt-bot/internal/bot/commands/uierr"
 	"alt-bot/internal/service"
 
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
@@ -111,16 +111,12 @@ func startBlackjackSession(event *events.ApplicationCommandInteractionCreate, gu
 
 	balance, err := economy.BlackjackPlaceBet(ctx, event.User().ID.String(), bet)
 	if err != nil {
-		var insufficient *service.InsufficientYenError
-		if errors.As(err, &insufficient) {
-			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-				SetContent(fmt.Sprintf("Yen不足です。必要: %d %s / 現在: %d %s", insufficient.Need, service.CurrencyYenUnit, insufficient.Have, service.CurrencyYenUnit)).
-				SetEphemeral(true).
-				Build())
-			return
+		message, ok := uierr.Format(err, "獲得")
+		if !ok {
+			message = "blackjack の開始に失敗しました。少し待って再試行してください。"
 		}
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("blackjack の開始に失敗しました。少し待って再試行してください。").
+			SetContent(message).
 			SetEphemeral(true).
 			Build())
 		return
@@ -149,10 +145,11 @@ func startBlackjackSession(event *events.ApplicationCommandInteractionCreate, gu
 	if blackjackPlayerHasNaturalBlackjack(session) || blackjackSessionHasDealerBlackjack(session) {
 		settled, err := settleBlackjack(ctx, economy, session)
 		if err != nil {
-			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-				SetContent("blackjack の精算に失敗しました。少し待って再試行してください。").
-				SetEphemeral(true).
-				Build())
+			message, ok := uierr.Format(err, "獲得")
+			if !ok {
+				message = "blackjack の精算に失敗しました。少し待って再試行してください。"
+			}
+			respondBlackjackAppError(event, message)
 			return
 		}
 		sendBlackjackInitialMessage(event, blackjackSnapshot(settled, true, "start", settled.FinalReason), true)
@@ -246,21 +243,52 @@ func respondBlackjackError(event *events.ComponentInteractionCreate, message str
 		Build())
 }
 
+func respondBlackjackAppError(event *events.ApplicationCommandInteractionCreate, message string) {
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetContent(message).
+		SetEphemeral(true).
+		Build())
+}
+
 func sendBlackjackInitialMessage(event *events.ApplicationCommandInteractionCreate, view blackjackRenderState, closed bool) {
+	respondBlackjackView(event, view, closed,
+		func() error { return event.DeferCreateMessage(true) },
+		func(embed discord.Embed, components []discord.ContainerComponent) error {
+			return event.CreateMessage(discord.NewMessageCreateBuilder().
+				SetEmbeds(embed).
+				SetContainerComponents(components...).
+				SetEphemeral(true).
+				Build())
+		},
+	)
+}
+
+// blackjackResponder is the subset of the disgo interaction-event API shared
+// by application-command and component events, letting the initial-message
+// and update-message paths reuse one response/PNG-attach/error-log flow.
+type blackjackResponder interface {
+	Client() bot.Client
+	ApplicationID() snowflake.ID
+	Token() string
+}
+
+func respondBlackjackView(
+	event blackjackResponder,
+	view blackjackRenderState,
+	closed bool,
+	deferFn func() error,
+	fallbackFn func(embed discord.Embed, components []discord.ContainerComponent) error,
+) {
 	embed := buildBlackjackEmbed(view, closed)
 	components := buildBlackjackComponents(view, closed)
-	if err := event.DeferCreateMessage(true); err != nil {
+	if err := deferFn(); err != nil {
 		log.Error().
 			Err(err).
 			Str("game", "blackjack").
-			Str("phase", "defer_create").
+			Str("phase", "defer").
 			Str("session_id", view.SessionID).
 			Msg("failed to defer blackjack response")
-		if err := event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetEmbeds(*embed).
-			SetContainerComponents(components...).
-			SetEphemeral(true).
-			Build()); err != nil {
+		if err := fallbackFn(*embed, components); err != nil {
 			log.Error().
 				Err(err).
 				Str("game", "blackjack").
@@ -327,57 +355,15 @@ func resolveBlackjackIfNeeded(ctx context.Context, economy *service.EconomyServi
 }
 
 func updateBlackjackMessage(event *events.ComponentInteractionCreate, view blackjackRenderState, closed bool) {
-	embed := buildBlackjackEmbed(view, closed)
-	components := buildBlackjackComponents(view, closed)
-	if err := event.DeferUpdateMessage(); err != nil {
-		log.Error().
-			Err(err).
-			Str("game", "blackjack").
-			Str("phase", "defer_update").
-			Str("session_id", view.SessionID).
-			Msg("failed to defer blackjack update")
-		if err := event.UpdateMessage(discord.NewMessageUpdateBuilder().
-			SetEmbeds(*embed).
-			SetContainerComponents(components...).
-			Build()); err != nil {
-			log.Error().
-				Err(err).
-				Str("game", "blackjack").
-				Str("phase", "send_base").
-				Str("session_id", view.SessionID).
-				Msg("failed to update blackjack message")
-		}
-		return
-	}
-
-	update := discord.NewMessageUpdateBuilder().
-		SetEmbeds(*embed).
-		SetContainerComponents(components...)
-	if pngBytes, err := renderBlackjackStatePNG(view); err == nil {
-		imageEmbed := discord.NewEmbedBuilder().SetImage(blackjackImageAttachment).Build()
-		update = update.
-			SetEmbeds(*embed, imageEmbed).
-			AddFile(blackjackImageFileName, "blackjack state", bytes.NewReader(pngBytes))
-	} else {
-		log.Error().
-			Err(err).
-			Str("game", "blackjack").
-			Str("phase", "render_png").
-			Str("session_id", view.SessionID).
-			Msg("failed to render blackjack png")
-	}
-	if _, err := event.Client().Rest().UpdateInteractionResponse(
-		event.ApplicationID(),
-		event.Token(),
-		update.Build(),
-	); err != nil {
-		log.Error().
-			Err(err).
-			Str("game", "blackjack").
-			Str("phase", "send_base").
-			Str("session_id", view.SessionID).
-			Msg("failed to update blackjack message")
-	}
+	respondBlackjackView(event, view, closed,
+		func() error { return event.DeferUpdateMessage() },
+		func(embed discord.Embed, components []discord.ContainerComponent) error {
+			return event.UpdateMessage(discord.NewMessageUpdateBuilder().
+				SetEmbeds(embed).
+				SetContainerComponents(components...).
+				Build())
+		},
+	)
 }
 
 func buildBlackjackEmbed(view blackjackRenderState, closed bool) *discord.Embed {
@@ -904,62 +890,6 @@ func blackjackDealInitial(session *blackjackSession) {
 	blackjackDrawCard(session, &session.Dealer)
 }
 
-func dealBlackjackCard(session *blackjackSession, hand *blackjackHand) {
-	if hand == nil {
-		return
-	}
-	card := blackjackTakeCard(session)
-	hand.Cards = append(hand.Cards, card)
-}
-
-func blackjackPlayDealerLocked(session *blackjackSession) {
-	for {
-		total, soft := blackjackHandValue(session.Dealer)
-		if total > 21 {
-			return
-		}
-		if total < blackjackDealerStandSoft {
-			blackjackDrawCard(session, &session.Dealer)
-			continue
-		}
-		if total == blackjackDealerStandSoft && soft {
-			return
-		}
-		return
-	}
-}
-
-func blackjackPlayDealerLegacy(session *blackjackSession) {
-	blackjackMu.Lock()
-	defer blackjackMu.Unlock()
-	blackjackPlayDealerLocked(session)
-}
-
-func blackjackDealerFinalTotal(session *blackjackSession) int {
-	total, _ := blackjackHandValue(session.Dealer)
-	return total
-}
-
-func blackjackDealerBust(session *blackjackSession) bool {
-	return blackjackDealerFinalTotal(session) > 21
-}
-
-func blackjackUnlockAndSnapshot(session *blackjackSession, revealDealer bool, action string, footer string) blackjackRenderState {
-	return blackjackSnapshot(session, revealDealer, action, footer)
-}
-
-func blackjackFinalizeView(session *blackjackSession, reason string) blackjackRenderState {
-	return blackjackSnapshot(session, true, "settle", reason)
-}
-
-func blackjackOpenSession(session *blackjackSession) blackjackRenderState {
-	return blackjackSnapshot(session, false, "start", blackjackActionMessage(session))
-}
-
-func blackjackAwaitingDealer(session *blackjackSession) bool {
-	return blackjackSessionReadyToSettle(session)
-}
-
 func blackjackPlayerHasNaturalBlackjack(session *blackjackSession) bool {
 	if len(session.Hands) == 0 {
 		return false
@@ -971,90 +901,3 @@ func blackjackSessionHasDealerBlackjack(session *blackjackSession) bool {
 	return blackjackIsNaturalBlackjack(session.Dealer)
 }
 
-func blackjackDisplayCards(cards []blackjackCard) []string {
-	labels := make([]string, 0, len(cards))
-	for _, card := range cards {
-		labels = append(labels, blackjackCardString(card))
-	}
-	return labels
-}
-
-func blackjackSortedHands(session *blackjackSession) []blackjackHand {
-	hands := append([]blackjackHand(nil), session.Hands...)
-	sort.SliceStable(hands, func(i, j int) bool { return i < j })
-	return hands
-}
-
-func blackjackCanAdvance(session *blackjackSession) bool {
-	return !session.Closed && session.ActiveHand < len(session.Hands)
-}
-
-func blackjackSessionSummary(session *blackjackSession) string {
-	parts := make([]string, 0, len(session.Hands))
-	for i, hand := range session.Hands {
-		total, _ := blackjackHandValue(hand.Cards)
-		parts = append(parts, fmt.Sprintf("H%d:%d", i+1, total))
-	}
-	return strings.Join(parts, ", ")
-}
-
-func blackjackEnsureInitialDeal(session *blackjackSession) {
-	if len(session.Dealer) > 0 || len(session.Hands) == 0 || len(session.Hands[0].Cards) > 0 {
-		return
-	}
-	blackjackDealInitial(session)
-}
-
-func blackjackCheckNaturalEnd(session *blackjackSession) bool {
-	playerBJ := blackjackPlayerHasNaturalBlackjack(session)
-	dealerBJ := blackjackSessionHasDealerBlackjack(session)
-	return playerBJ || dealerBJ
-}
-
-func blackjackInitialOutcome(session *blackjackSession) int64 {
-	playerBJ := blackjackPlayerHasNaturalBlackjack(session)
-	dealerBJ := blackjackSessionHasDealerBlackjack(session)
-	if playerBJ && dealerBJ {
-		return session.BaseBet
-	}
-	if playerBJ {
-		return session.BaseBet + session.BaseBet + session.BaseBet/2
-	}
-	if dealerBJ {
-		return 0
-	}
-	return -1
-}
-
-func blackjackSessionLabel(session *blackjackSession) string {
-	if session.Closed {
-		return session.FinalReason
-	}
-	return blackjackActionMessage(session)
-}
-
-func blackjackIsDealerVisible(session *blackjackSession) bool {
-	return session.DealersRevealed || session.Closed
-}
-
-func blackjackSessionStateText(session *blackjackSession) string {
-	if session.Closed {
-		return session.FinalReason
-	}
-	return fmt.Sprintf("残高 %d %s", session.BalanceAfter, service.CurrencyYenUnit)
-}
-
-func blackjackFormatError(err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
-}
-
-func blackjackSessionFooter(session *blackjackSession) string {
-	return fmt.Sprintf("session:%s", session.ID)
-}
-
-func blackjackPrepareSession(session *blackjackSession) {
-	blackjackEnsureInitialDeal(session)
-}

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"alt-bot/ent"
 )
@@ -46,6 +47,11 @@ func (s *EconomyService) blackjackAdjustBalance(ctx context.Context, discordID s
 
 		if delta < 0 && u.Balance < -delta {
 			return &InsufficientYenError{Need: -delta, Have: u.Balance}
+		}
+		if delta > 0 {
+			if err := s.recordProfitCapsTx(ctx, tx, u, delta, time.Now().UTC()); err != nil {
+				return err
+			}
 		}
 
 		newBalance := u.Balance + delta

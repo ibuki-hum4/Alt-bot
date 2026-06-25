@@ -154,6 +154,76 @@ func (_u *UserUpdate) SetNillableLastDailyResetAt(v *time.Time) *UserUpdate {
 	return _u
 }
 
+// SetWeeklyProfitEarned sets the "weekly_profit_earned" field.
+func (_u *UserUpdate) SetWeeklyProfitEarned(v int64) *UserUpdate {
+	_u.mutation.ResetWeeklyProfitEarned()
+	_u.mutation.SetWeeklyProfitEarned(v)
+	return _u
+}
+
+// SetNillableWeeklyProfitEarned sets the "weekly_profit_earned" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableWeeklyProfitEarned(v *int64) *UserUpdate {
+	if v != nil {
+		_u.SetWeeklyProfitEarned(*v)
+	}
+	return _u
+}
+
+// AddWeeklyProfitEarned adds value to the "weekly_profit_earned" field.
+func (_u *UserUpdate) AddWeeklyProfitEarned(v int64) *UserUpdate {
+	_u.mutation.AddWeeklyProfitEarned(v)
+	return _u
+}
+
+// SetLastWeeklyResetAt sets the "last_weekly_reset_at" field.
+func (_u *UserUpdate) SetLastWeeklyResetAt(v time.Time) *UserUpdate {
+	_u.mutation.SetLastWeeklyResetAt(v)
+	return _u
+}
+
+// SetNillableLastWeeklyResetAt sets the "last_weekly_reset_at" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableLastWeeklyResetAt(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetLastWeeklyResetAt(*v)
+	}
+	return _u
+}
+
+// SetSecurityCameraCount sets the "security_camera_count" field.
+func (_u *UserUpdate) SetSecurityCameraCount(v int64) *UserUpdate {
+	_u.mutation.ResetSecurityCameraCount()
+	_u.mutation.SetSecurityCameraCount(v)
+	return _u
+}
+
+// SetNillableSecurityCameraCount sets the "security_camera_count" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableSecurityCameraCount(v *int64) *UserUpdate {
+	if v != nil {
+		_u.SetSecurityCameraCount(*v)
+	}
+	return _u
+}
+
+// AddSecurityCameraCount adds value to the "security_camera_count" field.
+func (_u *UserUpdate) AddSecurityCameraCount(v int64) *UserUpdate {
+	_u.mutation.AddSecurityCameraCount(v)
+	return _u
+}
+
+// SetRobEndAt sets the "rob_end_at" field.
+func (_u *UserUpdate) SetRobEndAt(v time.Time) *UserUpdate {
+	_u.mutation.SetRobEndAt(v)
+	return _u
+}
+
+// SetNillableRobEndAt sets the "rob_end_at" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableRobEndAt(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetRobEndAt(*v)
+	}
+	return _u
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -240,6 +310,24 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.LastDailyResetAt(); ok {
 		_spec.SetField(user.FieldLastDailyResetAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.WeeklyProfitEarned(); ok {
+		_spec.SetField(user.FieldWeeklyProfitEarned, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedWeeklyProfitEarned(); ok {
+		_spec.AddField(user.FieldWeeklyProfitEarned, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.LastWeeklyResetAt(); ok {
+		_spec.SetField(user.FieldLastWeeklyResetAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.SecurityCameraCount(); ok {
+		_spec.SetField(user.FieldSecurityCameraCount, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedSecurityCameraCount(); ok {
+		_spec.AddField(user.FieldSecurityCameraCount, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.RobEndAt(); ok {
+		_spec.SetField(user.FieldRobEndAt, field.TypeTime, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -387,6 +475,76 @@ func (_u *UserUpdateOne) SetNillableLastDailyResetAt(v *time.Time) *UserUpdateOn
 	return _u
 }
 
+// SetWeeklyProfitEarned sets the "weekly_profit_earned" field.
+func (_u *UserUpdateOne) SetWeeklyProfitEarned(v int64) *UserUpdateOne {
+	_u.mutation.ResetWeeklyProfitEarned()
+	_u.mutation.SetWeeklyProfitEarned(v)
+	return _u
+}
+
+// SetNillableWeeklyProfitEarned sets the "weekly_profit_earned" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableWeeklyProfitEarned(v *int64) *UserUpdateOne {
+	if v != nil {
+		_u.SetWeeklyProfitEarned(*v)
+	}
+	return _u
+}
+
+// AddWeeklyProfitEarned adds value to the "weekly_profit_earned" field.
+func (_u *UserUpdateOne) AddWeeklyProfitEarned(v int64) *UserUpdateOne {
+	_u.mutation.AddWeeklyProfitEarned(v)
+	return _u
+}
+
+// SetLastWeeklyResetAt sets the "last_weekly_reset_at" field.
+func (_u *UserUpdateOne) SetLastWeeklyResetAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetLastWeeklyResetAt(v)
+	return _u
+}
+
+// SetNillableLastWeeklyResetAt sets the "last_weekly_reset_at" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableLastWeeklyResetAt(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetLastWeeklyResetAt(*v)
+	}
+	return _u
+}
+
+// SetSecurityCameraCount sets the "security_camera_count" field.
+func (_u *UserUpdateOne) SetSecurityCameraCount(v int64) *UserUpdateOne {
+	_u.mutation.ResetSecurityCameraCount()
+	_u.mutation.SetSecurityCameraCount(v)
+	return _u
+}
+
+// SetNillableSecurityCameraCount sets the "security_camera_count" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableSecurityCameraCount(v *int64) *UserUpdateOne {
+	if v != nil {
+		_u.SetSecurityCameraCount(*v)
+	}
+	return _u
+}
+
+// AddSecurityCameraCount adds value to the "security_camera_count" field.
+func (_u *UserUpdateOne) AddSecurityCameraCount(v int64) *UserUpdateOne {
+	_u.mutation.AddSecurityCameraCount(v)
+	return _u
+}
+
+// SetRobEndAt sets the "rob_end_at" field.
+func (_u *UserUpdateOne) SetRobEndAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetRobEndAt(v)
+	return _u
+}
+
+// SetNillableRobEndAt sets the "rob_end_at" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableRobEndAt(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetRobEndAt(*v)
+	}
+	return _u
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
@@ -503,6 +661,24 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.LastDailyResetAt(); ok {
 		_spec.SetField(user.FieldLastDailyResetAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.WeeklyProfitEarned(); ok {
+		_spec.SetField(user.FieldWeeklyProfitEarned, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedWeeklyProfitEarned(); ok {
+		_spec.AddField(user.FieldWeeklyProfitEarned, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.LastWeeklyResetAt(); ok {
+		_spec.SetField(user.FieldLastWeeklyResetAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.SecurityCameraCount(); ok {
+		_spec.SetField(user.FieldSecurityCameraCount, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedSecurityCameraCount(); ok {
+		_spec.AddField(user.FieldSecurityCameraCount, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.RobEndAt(); ok {
+		_spec.SetField(user.FieldRobEndAt, field.TypeTime, value)
 	}
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues

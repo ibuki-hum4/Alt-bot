@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	baseNewsProbability        = 0.0015 // 0.15%
-	ceilingStepProbability     = 0.0005 // 0.05% / miss
-	ceilingMaxBonusProbability = 0.02   // +2.0% max
+	baseNewsProbability        = 0.0002 // 0.02%
+	ceilingStepProbability     = 0.0001 // 0.01% / miss
+	ceilingMaxBonusProbability = 0.005  // +0.5% max
 )
 
 type ProbabilityDetails struct {

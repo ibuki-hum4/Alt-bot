@@ -56,30 +56,7 @@ func Definitions() []discord.ApplicationCommandCreate {
 		},
 		discord.SlashCommandCreate{
 			Name:        "shop",
-			Description: "ショップで商品を購入",
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "list",
-					Description: "購入可能な商品一覧を表示",
-				},
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "buy",
-					Description: "商品を購入",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionString{
-							Name:        "item",
-							Description: "商品ID",
-							Required:    true,
-						},
-						discord.ApplicationCommandOptionInt{
-							Name:        "amount",
-							Description: "購入数",
-							Required:    true,
-							MinValue:    intPointer(1),
-						},
-					},
-				},
-			},
+			Description: "ショップで商品を選択して購入(1分以内に操作)",
 		},
 		discord.SlashCommandCreate{
 			Name:        "crypto",

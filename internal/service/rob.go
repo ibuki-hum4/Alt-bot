@@ -13,7 +13,7 @@ const (
 	RobMinAmount int64 = 10
 	RobMaxAmount int64 = 50000
 
-	robCooldown      = 30 * time.Minute
+	robCooldown      = 24 * time.Hour
 	robSuccessChance = 0.5
 )
 

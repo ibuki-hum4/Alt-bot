@@ -150,6 +150,12 @@ func (h *Handlers) dispatchComponentInteraction(event *events.ComponentInteracti
 			return
 		}
 		cmdutil.HandleWorkComponent(h.logger, h.economy, event)
+	case strings.HasPrefix(customID, "shop:"):
+		if !h.cfg.EconomyEnabled {
+			h.replyEconomyDisabledComponent(event)
+			return
+		}
+		cmdutil.HandleShopComponent(h.logger, h.economy, event)
 	case strings.HasPrefix(customID, "crypto:"):
 		if !h.cfg.EconomyEnabled {
 			h.replyEconomyDisabledComponent(event)

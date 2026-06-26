@@ -36,29 +36,22 @@ func HandlePing(logger zerolog.Logger, event *events.ApplicationCommandInteracti
 		}
 	}
 
-	deferStart := time.Now()
-	if err := event.DeferCreateMessage(false); err != nil {
-		logger.Error().Err(err).Msg("failed to defer ping response")
-		return
-	}
-	apiLatency := time.Since(deferStart)
-
-	if _, err := event.Client().Rest().UpdateInteractionResponse(
-		event.ApplicationID(),
-		event.Token(),
-		discord.NewMessageUpdateBuilder().
-			SetEmbeds(discord.NewEmbedBuilder().
-				SetTitle("Pong").
-				SetDescription("レイテンシ計測").
-				SetColor(0x3498DB).
-				AddField("WebSocket", formatLatencyMS(websocketLatency), true).
-				AddField("Command受信", formatLatencyMS(commandReceivedLatency), true).
-				AddField("API", formatLatencyMS(apiLatency), true).
-				SetTimestamp(now).
-				Build()).
-			Build(),
+	// Respond with a single CreateMessage call instead of Defer+Update: the
+	// embed only needs values we already have (gateway heartbeat latency,
+	// time since Discord created the interaction), so deferring would just
+	// add a second Discord API round-trip for no benefit.
+	if err := event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetEmbeds(discord.NewEmbedBuilder().
+			SetTitle("Pong").
+			SetDescription("レイテンシ計測").
+			SetColor(0x3498DB).
+			AddField("WebSocket", formatLatencyMS(websocketLatency), true).
+			AddField("Command受信", formatLatencyMS(commandReceivedLatency), true).
+			SetTimestamp(now).
+			Build()).
+		Build(),
 	); err != nil {
-		logger.Error().Err(err).Msg("failed to update ping response")
+		logger.Error().Err(err).Msg("failed to send ping response")
 		return
 	}
 }

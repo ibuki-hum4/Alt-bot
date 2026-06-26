@@ -34,6 +34,13 @@ func HandleRob(logger zerolog.Logger, economy *service.EconomyService, event *ev
 			Build())
 		return
 	}
+	if target.Bot {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("Botを対象にすることはできません。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
 
 	attackerID := event.User().ID.String()
 	targetID := target.ID.String()

@@ -34,6 +34,13 @@ func HandlePay(logger zerolog.Logger, economy *service.EconomyService, event *ev
 			Build())
 		return
 	}
+	if target.Bot {
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("Botを対象にすることはできません。").
+			SetEphemeral(true).
+			Build())
+		return
+	}
 
 	fromID := event.User().ID.String()
 	toID := target.ID.String()

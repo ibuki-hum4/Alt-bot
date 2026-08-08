@@ -9,7 +9,7 @@ require (
 	github.com/disgoorg/snowflake/v2 v2.0.1
 	github.com/fogleman/gg v1.3.0
 	github.com/go-playground/validator/v10 v10.28.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.12.3
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
 	go.uber.org/fx v1.24.0

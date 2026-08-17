@@ -15,6 +15,7 @@ import (
 	"github.com/disgoorg/disgo"
 	dbot "github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/disgo/gateway"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
 	"go.uber.org/fx"
@@ -29,6 +30,7 @@ func main() {
 			db.NewEntClient,
 			service.NewEconomyService,
 			service.NewRolePanelService,
+			service.NewStickyService,
 			ibot.NewHandlers,
 			newDisgoClient,
 		),
@@ -53,7 +55,7 @@ func newLogger(cfg config.Config) zerolog.Logger {
 }
 
 func newDisgoClient(cfg config.Config, handlers *ibot.Handlers, logger zerolog.Logger) (dbot.Client, error) {
-	client, err := disgo.New(cfg.DiscordToken,
+	opts := []dbot.ConfigOpt{
 		dbot.WithDefaultGateway(),
 		dbot.WithEventListenerFunc(func(event dbot.Event) {
 			switch e := event.(type) {
@@ -63,9 +65,23 @@ func newDisgoClient(cfg config.Config, handlers *ibot.Handlers, logger zerolog.L
 				handlers.OnAutocompleteInteraction(e)
 			case *events.ComponentInteractionCreate:
 				handlers.OnComponentInteraction(e)
+			case *events.MessageCreate:
+				handlers.OnMessageCreate(e)
 			}
 		}),
-	)
+	}
+
+	// Interactions arrive without any gateway intent, so the bot otherwise runs
+	// with none at all. Sticky messages are the only feature that needs to see
+	// ordinary messages, so the intent is requested only when it is enabled.
+	// IntentGuildMessages is not privileged; the privileged message content
+	// intent stays off because only the fact a message arrived matters here.
+	if cfg.StickyEnabled {
+		opts = append(opts, dbot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentGuildMessages)))
+		logger.Info().Msg("guild message intent requested for sticky messages")
+	}
+
+	client, err := disgo.New(cfg.DiscordToken, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create disgo client: %w", err)
 	}
@@ -85,11 +101,13 @@ func registerLifecycle(lc fx.Lifecycle, client dbot.Client, handlers *ibot.Handl
 			}
 			logFeatureFlags(logger, handlers)
 			handlers.StartNewsLoop(client)
+			handlers.StartSticky(ctx, client)
 			logger.Info().Msg("bot started")
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
 			handlers.StopNewsLoop()
+			handlers.StopStickyTimers()
 			client.Close(ctx)
 			logger.Info().Msg("bot stopped")
 			return nil
@@ -100,12 +118,13 @@ func registerLifecycle(lc fx.Lifecycle, client dbot.Client, handlers *ibot.Handl
 func logFeatureFlags(logger zerolog.Logger, handlers *ibot.Handlers) {
 	cfg := handlers.Config()
 	logger.Info().Msgf(
-			"[Feature Flags]\nEconomy: %s\nCasino: %s\nCrypto: %s\nRolePanel: %s\nModeration: %s",
+			"[Feature Flags]\nEconomy: %s\nCasino: %s\nCrypto: %s\nRolePanel: %s\nModeration: %s\nSticky: %s",
 		featureState(cfg.EconomyEnabled),
 		featureState(cfg.CasinoEnabled),
 		featureState(cfg.CryptoEnabled),
 		featureState(cfg.RolePanelEnabled),
 		featureState(cfg.ModEnabled),
+		featureState(cfg.StickyEnabled),
 	)
 }
 

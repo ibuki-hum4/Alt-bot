@@ -9,6 +9,7 @@ import (
 	"alt-bot/ent/pricehistory"
 	"alt-bot/ent/rolepanel"
 	"alt-bot/ent/schema"
+	"alt-bot/ent/stickymessage"
 	"alt-bot/ent/transactionlog"
 	"alt-bot/ent/user"
 	"time"
@@ -134,6 +135,42 @@ func init() {
 	rolepanel.DefaultUpdatedAt = rolepanelDescUpdatedAt.Default.(func() time.Time)
 	// rolepanel.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	rolepanel.UpdateDefaultUpdatedAt = rolepanelDescUpdatedAt.UpdateDefault.(func() time.Time)
+	stickymessageFields := schema.StickyMessage{}.Fields()
+	_ = stickymessageFields
+	// stickymessageDescGuildID is the schema descriptor for guild_id field.
+	stickymessageDescGuildID := stickymessageFields[0].Descriptor()
+	// stickymessage.GuildIDValidator is a validator for the "guild_id" field. It is called by the builders before save.
+	stickymessage.GuildIDValidator = stickymessageDescGuildID.Validators[0].(func(string) error)
+	// stickymessageDescChannelID is the schema descriptor for channel_id field.
+	stickymessageDescChannelID := stickymessageFields[1].Descriptor()
+	// stickymessage.ChannelIDValidator is a validator for the "channel_id" field. It is called by the builders before save.
+	stickymessage.ChannelIDValidator = stickymessageDescChannelID.Validators[0].(func(string) error)
+	// stickymessageDescContent is the schema descriptor for content field.
+	stickymessageDescContent := stickymessageFields[2].Descriptor()
+	// stickymessage.ContentValidator is a validator for the "content" field. It is called by the builders before save.
+	stickymessage.ContentValidator = stickymessageDescContent.Validators[0].(func(string) error)
+	// stickymessageDescLastMessageID is the schema descriptor for last_message_id field.
+	stickymessageDescLastMessageID := stickymessageFields[3].Descriptor()
+	// stickymessage.DefaultLastMessageID holds the default value on creation for the last_message_id field.
+	stickymessage.DefaultLastMessageID = stickymessageDescLastMessageID.Default.(string)
+	// stickymessageDescEnabled is the schema descriptor for enabled field.
+	stickymessageDescEnabled := stickymessageFields[4].Descriptor()
+	// stickymessage.DefaultEnabled holds the default value on creation for the enabled field.
+	stickymessage.DefaultEnabled = stickymessageDescEnabled.Default.(bool)
+	// stickymessageDescCreatedBy is the schema descriptor for created_by field.
+	stickymessageDescCreatedBy := stickymessageFields[5].Descriptor()
+	// stickymessage.DefaultCreatedBy holds the default value on creation for the created_by field.
+	stickymessage.DefaultCreatedBy = stickymessageDescCreatedBy.Default.(string)
+	// stickymessageDescCreatedAt is the schema descriptor for created_at field.
+	stickymessageDescCreatedAt := stickymessageFields[6].Descriptor()
+	// stickymessage.DefaultCreatedAt holds the default value on creation for the created_at field.
+	stickymessage.DefaultCreatedAt = stickymessageDescCreatedAt.Default.(func() time.Time)
+	// stickymessageDescUpdatedAt is the schema descriptor for updated_at field.
+	stickymessageDescUpdatedAt := stickymessageFields[7].Descriptor()
+	// stickymessage.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	stickymessage.DefaultUpdatedAt = stickymessageDescUpdatedAt.Default.(func() time.Time)
+	// stickymessage.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	stickymessage.UpdateDefaultUpdatedAt = stickymessageDescUpdatedAt.UpdateDefault.(func() time.Time)
 	transactionlogFields := schema.TransactionLog{}.Fields()
 	_ = transactionlogFields
 	// transactionlogDescTxID is the schema descriptor for tx_id field.

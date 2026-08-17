@@ -147,6 +147,32 @@ func Definitions() []discord.ApplicationCommandCreate {
 			},
 		},
 		discord.SlashCommandCreate{
+			Name:                     "pin",
+			Description:              "チャンネル最下部に固定表示するメッセージを設定",
+			DefaultMemberPermissions: disgojson.NewNullablePtr(discord.PermissionManageGuild),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "set",
+					Description: "このチャンネルの固定メッセージを設定",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "message",
+							Description: "固定表示する本文",
+							Required:    true,
+						},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "off",
+					Description: "このチャンネルの固定メッセージを解除",
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "status",
+					Description: "このチャンネルの固定メッセージ設定を表示",
+				},
+			},
+		},
+		discord.SlashCommandCreate{
 			Name:                     "rp",
 			Description:              "ロールパネル管理",
 			DefaultMemberPermissions: disgojson.NewNullablePtr(discord.PermissionManageGuild),

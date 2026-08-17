@@ -35,6 +35,12 @@ type Config struct {
 	MinesBombCount     int     `mapstructure:"mines_bomb_count"`
 	MinesInitialSafePC float64 `mapstructure:"mines_initial_safe_pc"`
 
+	// StickyEnabled also controls whether the bot requests the guild message
+	// gateway intent at all, so leaving it off keeps the bot from receiving
+	// every message in every guild.
+	StickyEnabled         bool `mapstructure:"sticky_enabled"`
+	StickyDebounceSeconds int  `mapstructure:"sticky_debounce_seconds"`
+
 	EconomyEnabled    bool            `mapstructure:"economy_enabled"`
 	CasinoEnabled     bool            `mapstructure:"casino_enabled"`
 	CryptoEnabled     bool            `mapstructure:"crypto_enabled"`
@@ -114,6 +120,8 @@ func Load() (Config, error) {
 		{key: "mines_bomb_count"},
 		{key: "mines_initial_safe_pc"},
 		{key: "role_panel_enabled"},
+		{key: "sticky_enabled"},
+		{key: "sticky_debounce_seconds"},
 		{key: "economy_enabled"},
 		{key: "mod_enabled"},
 		{key: "daily_profit_cap"},
@@ -159,6 +167,8 @@ func Load() (Config, error) {
 		"mines_initial_safe_pc":        0.88,
 		"mod_enabled":                  false,
 		"role_panel_enabled":           false,
+		"sticky_enabled":               false,
+		"sticky_debounce_seconds":      5,
 		"economy_enabled":              true,
 		"daily_profit_cap":             int64(3500000),
 		"weekly_profit_cap":            int64(15000000),

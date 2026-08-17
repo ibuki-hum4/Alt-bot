@@ -8,6 +8,7 @@ import (
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/pricehistory"
 	"alt-bot/ent/rolepanel"
+	"alt-bot/ent/stickymessage"
 	"alt-bot/ent/transactionlog"
 	"alt-bot/ent/user"
 	"context"
@@ -84,6 +85,7 @@ func checkColumn(t, c string) error {
 			marketstate.Table:    marketstate.ValidColumn,
 			pricehistory.Table:   pricehistory.ValidColumn,
 			rolepanel.Table:      rolepanel.ValidColumn,
+			stickymessage.Table:  stickymessage.ValidColumn,
 			transactionlog.Table: transactionlog.ValidColumn,
 			user.Table:           user.ValidColumn,
 		})

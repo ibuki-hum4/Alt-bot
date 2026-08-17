@@ -108,6 +108,12 @@ func (h *Handlers) dispatchApplicationCommand(event *events.ApplicationCommandIn
 			return
 		}
 		cmdutil.HandleChart(h.logger, h.economy, event)
+	case "pin":
+		if !h.cfg.StickyEnabled {
+			h.replyFeatureDisabledSlash(event, "固定メッセージ", " /pin は利用できません。")
+			return
+		}
+		cmdutil.HandleSticky(h.logger, h.SetStickyMessage, h.DisableStickyMessage, h.StickyMessageStatus, event)
 	case "rp":
 		cmdutil.HandleRolePanel(h.logger, h.cfg, h.rolePanels, event)
 	case "mod":

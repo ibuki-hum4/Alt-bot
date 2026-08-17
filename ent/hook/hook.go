@@ -68,6 +68,18 @@ func (f RolePanelFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RolePanelMutation", m)
 }
 
+// The StickyMessageFunc type is an adapter to allow the use of ordinary
+// function as StickyMessage mutator.
+type StickyMessageFunc func(context.Context, *ent.StickyMessageMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StickyMessageFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StickyMessageMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StickyMessageMutation", m)
+}
+
 // The TransactionLogFunc type is an adapter to allow the use of ordinary
 // function as TransactionLog mutator.
 type TransactionLogFunc func(context.Context, *ent.TransactionLogMutation) (ent.Value, error)

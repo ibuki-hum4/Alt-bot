@@ -22,6 +22,8 @@ type Tx struct {
 	PriceHistory *PriceHistoryClient
 	// RolePanel is the client for interacting with the RolePanel builders.
 	RolePanel *RolePanelClient
+	// StickyMessage is the client for interacting with the StickyMessage builders.
+	StickyMessage *StickyMessageClient
 	// TransactionLog is the client for interacting with the TransactionLog builders.
 	TransactionLog *TransactionLogClient
 	// User is the client for interacting with the User builders.
@@ -162,6 +164,7 @@ func (tx *Tx) init() {
 	tx.MarketState = NewMarketStateClient(tx.config)
 	tx.PriceHistory = NewPriceHistoryClient(tx.config)
 	tx.RolePanel = NewRolePanelClient(tx.config)
+	tx.StickyMessage = NewStickyMessageClient(tx.config)
 	tx.TransactionLog = NewTransactionLogClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }

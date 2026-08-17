@@ -16,6 +16,7 @@ import (
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/pricehistory"
 	"alt-bot/ent/rolepanel"
+	"alt-bot/ent/stickymessage"
 	"alt-bot/ent/transactionlog"
 	"alt-bot/ent/user"
 
@@ -39,6 +40,8 @@ type Client struct {
 	PriceHistory *PriceHistoryClient
 	// RolePanel is the client for interacting with the RolePanel builders.
 	RolePanel *RolePanelClient
+	// StickyMessage is the client for interacting with the StickyMessage builders.
+	StickyMessage *StickyMessageClient
 	// TransactionLog is the client for interacting with the TransactionLog builders.
 	TransactionLog *TransactionLogClient
 	// User is the client for interacting with the User builders.
@@ -59,6 +62,7 @@ func (c *Client) init() {
 	c.MarketState = NewMarketStateClient(c.config)
 	c.PriceHistory = NewPriceHistoryClient(c.config)
 	c.RolePanel = NewRolePanelClient(c.config)
+	c.StickyMessage = NewStickyMessageClient(c.config)
 	c.TransactionLog = NewTransactionLogClient(c.config)
 	c.User = NewUserClient(c.config)
 }
@@ -158,6 +162,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		MarketState:    NewMarketStateClient(cfg),
 		PriceHistory:   NewPriceHistoryClient(cfg),
 		RolePanel:      NewRolePanelClient(cfg),
+		StickyMessage:  NewStickyMessageClient(cfg),
 		TransactionLog: NewTransactionLogClient(cfg),
 		User:           NewUserClient(cfg),
 	}, nil
@@ -184,6 +189,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		MarketState:    NewMarketStateClient(cfg),
 		PriceHistory:   NewPriceHistoryClient(cfg),
 		RolePanel:      NewRolePanelClient(cfg),
+		StickyMessage:  NewStickyMessageClient(cfg),
 		TransactionLog: NewTransactionLogClient(cfg),
 		User:           NewUserClient(cfg),
 	}, nil
@@ -216,7 +222,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.ChainState, c.Guild, c.MarketState, c.PriceHistory, c.RolePanel,
-		c.TransactionLog, c.User,
+		c.StickyMessage, c.TransactionLog, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -227,7 +233,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.ChainState, c.Guild, c.MarketState, c.PriceHistory, c.RolePanel,
-		c.TransactionLog, c.User,
+		c.StickyMessage, c.TransactionLog, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -246,6 +252,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PriceHistory.mutate(ctx, m)
 	case *RolePanelMutation:
 		return c.RolePanel.mutate(ctx, m)
+	case *StickyMessageMutation:
+		return c.StickyMessage.mutate(ctx, m)
 	case *TransactionLogMutation:
 		return c.TransactionLog.mutate(ctx, m)
 	case *UserMutation:
@@ -920,6 +928,139 @@ func (c *RolePanelClient) mutate(ctx context.Context, m *RolePanelMutation) (Val
 	}
 }
 
+// StickyMessageClient is a client for the StickyMessage schema.
+type StickyMessageClient struct {
+	config
+}
+
+// NewStickyMessageClient returns a client for the StickyMessage from the given config.
+func NewStickyMessageClient(c config) *StickyMessageClient {
+	return &StickyMessageClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stickymessage.Hooks(f(g(h())))`.
+func (c *StickyMessageClient) Use(hooks ...Hook) {
+	c.hooks.StickyMessage = append(c.hooks.StickyMessage, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stickymessage.Intercept(f(g(h())))`.
+func (c *StickyMessageClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StickyMessage = append(c.inters.StickyMessage, interceptors...)
+}
+
+// Create returns a builder for creating a StickyMessage entity.
+func (c *StickyMessageClient) Create() *StickyMessageCreate {
+	mutation := newStickyMessageMutation(c.config, OpCreate)
+	return &StickyMessageCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StickyMessage entities.
+func (c *StickyMessageClient) CreateBulk(builders ...*StickyMessageCreate) *StickyMessageCreateBulk {
+	return &StickyMessageCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StickyMessageClient) MapCreateBulk(slice any, setFunc func(*StickyMessageCreate, int)) *StickyMessageCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StickyMessageCreateBulk{err: fmt.Errorf("calling to StickyMessageClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StickyMessageCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StickyMessageCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StickyMessage.
+func (c *StickyMessageClient) Update() *StickyMessageUpdate {
+	mutation := newStickyMessageMutation(c.config, OpUpdate)
+	return &StickyMessageUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StickyMessageClient) UpdateOne(_m *StickyMessage) *StickyMessageUpdateOne {
+	mutation := newStickyMessageMutation(c.config, OpUpdateOne, withStickyMessage(_m))
+	return &StickyMessageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StickyMessageClient) UpdateOneID(id int) *StickyMessageUpdateOne {
+	mutation := newStickyMessageMutation(c.config, OpUpdateOne, withStickyMessageID(id))
+	return &StickyMessageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StickyMessage.
+func (c *StickyMessageClient) Delete() *StickyMessageDelete {
+	mutation := newStickyMessageMutation(c.config, OpDelete)
+	return &StickyMessageDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StickyMessageClient) DeleteOne(_m *StickyMessage) *StickyMessageDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StickyMessageClient) DeleteOneID(id int) *StickyMessageDeleteOne {
+	builder := c.Delete().Where(stickymessage.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StickyMessageDeleteOne{builder}
+}
+
+// Query returns a query builder for StickyMessage.
+func (c *StickyMessageClient) Query() *StickyMessageQuery {
+	return &StickyMessageQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStickyMessage},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StickyMessage entity by its id.
+func (c *StickyMessageClient) Get(ctx context.Context, id int) (*StickyMessage, error) {
+	return c.Query().Where(stickymessage.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StickyMessageClient) GetX(ctx context.Context, id int) *StickyMessage {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StickyMessageClient) Hooks() []Hook {
+	return c.hooks.StickyMessage
+}
+
+// Interceptors returns the client interceptors.
+func (c *StickyMessageClient) Interceptors() []Interceptor {
+	return c.inters.StickyMessage
+}
+
+func (c *StickyMessageClient) mutate(ctx context.Context, m *StickyMessageMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StickyMessageCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StickyMessageUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StickyMessageUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StickyMessageDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StickyMessage mutation op: %q", m.Op())
+	}
+}
+
 // TransactionLogClient is a client for the TransactionLog schema.
 type TransactionLogClient struct {
 	config
@@ -1189,11 +1330,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		ChainState, Guild, MarketState, PriceHistory, RolePanel, TransactionLog,
-		User []ent.Hook
+		ChainState, Guild, MarketState, PriceHistory, RolePanel, StickyMessage,
+		TransactionLog, User []ent.Hook
 	}
 	inters struct {
-		ChainState, Guild, MarketState, PriceHistory, RolePanel, TransactionLog,
-		User []ent.Interceptor
+		ChainState, Guild, MarketState, PriceHistory, RolePanel, StickyMessage,
+		TransactionLog, User []ent.Interceptor
 	}
 )

@@ -42,6 +42,7 @@ type userBurstCounter struct {
 type Handlers struct {
 	economy    *service.EconomyService
 	rolePanels *service.RolePanelService
+	sticky     *service.StickyService
 	ownerIDs   map[string]struct{}
 	logger     zerolog.Logger
 	cfg        config.Config
@@ -50,6 +51,13 @@ type Handlers struct {
 	newsChannels map[string]snowflake.ID
 	newsCancel   context.CancelFunc
 	newsClient   bot.Client
+
+	stickyMu        sync.Mutex
+	stickyClient    bot.Client
+	stickyChannels  map[snowflake.ID]struct{}
+	stickyTimers    map[snowflake.ID]*time.Timer
+	stickyReposting map[snowflake.ID]bool
+	stickyDebounce  time.Duration
 
 	rateMu               sync.Mutex
 	lastCommandAt        map[string]time.Time
@@ -70,7 +78,7 @@ func (h *Handlers) Config() config.Config {
 
 const economyDisabledMessage = "経済機能は現在無効化されています。"
 
-func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelService, cfg config.Config, ownerIDs []string, logger zerolog.Logger) *Handlers {
+func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelService, sticky *service.StickyService, cfg config.Config, ownerIDs []string, logger zerolog.Logger) *Handlers {
 	set := make(map[string]struct{}, len(ownerIDs))
 	for _, id := range ownerIDs {
 		normalized := strings.TrimSpace(id)
@@ -108,10 +116,15 @@ func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelS
 	return &Handlers{
 		economy:                 economy,
 		rolePanels:              rolePanels,
+		sticky:                  sticky,
 		ownerIDs:                set,
 		logger:                  logger,
 		cfg:                     cfg,
 		newsChannels:            make(map[string]snowflake.ID),
+		stickyChannels:          make(map[snowflake.ID]struct{}),
+		stickyTimers:            make(map[snowflake.ID]*time.Timer),
+		stickyReposting:         make(map[snowflake.ID]bool),
+		stickyDebounce:          stickyDebounceDuration(cfg.StickyDebounceSeconds),
 		lastCommandAt:           make(map[string]time.Time),
 		slashBurstByUser:        make(map[string]userBurstCounter),
 		componentBurstByUser:    make(map[string]userBurstCounter),

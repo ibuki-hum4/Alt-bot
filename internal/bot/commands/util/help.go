@@ -10,7 +10,7 @@ func HandleHelp(event *events.ApplicationCommandInteractionCreate) {
 		SetTitle("Help").
 		SetDescription("利用できるコマンド一覧です").
 		SetColor(0x5865F2).
-		AddField("Utility", "/help, /ping, /news channel|off|status, /rate, /chart [limit]", false).
+		AddField("Utility", "/help, /ping, /news channel|off|status, /rate, /chart [limit], /pin set|off|status", false).
 		AddField("Economy", "/work, /rob target, /shop(選択式), /crypto buy|sell amount", false).
 		AddField("Casino", "/casino blackjack|chinchiro|mines|poker amount", false).
 		AddField("Moderation", "/mod kick|ban|mute user ...", false).

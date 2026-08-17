@@ -21,6 +21,9 @@ type PriceHistory func(*sql.Selector)
 // RolePanel is the predicate function for rolepanel builders.
 type RolePanel func(*sql.Selector)
 
+// StickyMessage is the predicate function for stickymessage builders.
+type StickyMessage func(*sql.Selector)
+
 // TransactionLog is the predicate function for transactionlog builders.
 type TransactionLog func(*sql.Selector)
 

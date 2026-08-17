@@ -28,6 +28,10 @@ data:
   ALTBOT_CRYPTO_ENABLED: "true"
   ALTBOT_ROLE_PANEL_ENABLED: "true"
   ALTBOT_MOD_ENABLED: "true"
+  # Sticky messages (/pin). Enabling this makes the bot request the guild
+  # message gateway intent so it can see when a channel gets a new message.
+  ALTBOT_STICKY_ENABLED: "true"
+  ALTBOT_STICKY_DEBOUNCE_SECONDS: "5"
   # Profit caps
   ALTBOT_DAILY_PROFIT_CAP: "3500000"
   ALTBOT_WEEKLY_PROFIT_CAP: "15000000"

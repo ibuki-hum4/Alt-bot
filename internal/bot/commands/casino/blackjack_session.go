@@ -345,14 +345,13 @@ func resolveBlackjackIfNeeded(ctx context.Context, economy *service.EconomyServi
 	}
 
 	if blackjackSessionReadyToSettle(session) {
-		view := blackjackSnapshot(session, true, action, "ディーラーのターン")
 		blackjackMu.Unlock()
 		settled, err := settleBlackjack(ctx, economy, session)
 		if err != nil {
 			respondBlackjackError(event, "blackjack の精算に失敗しました。少し待って再試行してください。")
 			return
 		}
-		view = blackjackSnapshot(settled, true, action, settled.FinalReason)
+		view := blackjackSnapshot(settled, true, action, settled.FinalReason)
 		updateBlackjackMessage(event, view, settled.Closed)
 		return
 	}
@@ -643,18 +642,18 @@ func blackjackResolvePayout(session *blackjackSession) int64 {
 	return payout
 }
 
+// blackjackPlayDealer draws until the dealer reaches blackjackDealerStandSoft,
+// then stands. Note the dealer stands on a soft 17 as well as a hard one; the
+// hand's softness deliberately does not affect the decision.
 func blackjackPlayDealer(session *blackjackSession) {
 	for {
-		total, soft := blackjackHandValue(session.Dealer)
+		total, _ := blackjackHandValue(session.Dealer)
 		if total > 21 {
 			return
 		}
 		if total < blackjackDealerStandSoft {
 			blackjackDrawCard(session, &session.Dealer)
 			continue
-		}
-		if total == blackjackDealerStandSoft && soft {
-			return
 		}
 		return
 	}

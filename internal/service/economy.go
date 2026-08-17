@@ -442,11 +442,7 @@ func (s *EconomyService) CanAwardProfit(ctx context.Context, discordID string, p
 	return true, nil
 }
 
-// isSameDay checks if two timestamps are on the same day (in market location timezone).
-func (s *EconomyService) isSameDay(t1, t2 time.Time) bool {
-	return isSameDay(t1, t2)
-}
-
+// isSameDay reports whether two timestamps fall on the same calendar day.
 func isSameDay(t1, t2 time.Time) bool {
 	y1, m1, d1 := t1.Date()
 	y2, m2, d2 := t2.Date()

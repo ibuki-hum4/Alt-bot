@@ -79,9 +79,7 @@ func drawBlackjackSessionFrame(dc *gg.Context, view blackjackRenderState) error 
 
 func blackjackDealerCardsForView(view blackjackRenderState) []blackjackCard {
 	cards := make([]blackjackCard, 0, len(view.Dealer))
-	for _, card := range view.Dealer {
-		cards = append(cards, card)
-	}
+	cards = append(cards, view.Dealer...)
 	return cards
 }
 

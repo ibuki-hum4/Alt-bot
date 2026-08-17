@@ -132,8 +132,7 @@ func (s *EconomyService) RobUser(ctx context.Context, attackerDiscordID, targetD
 
 		success := s.rand.Float64() < robSuccessChance
 
-		attackerBalance := attacker.Balance
-		targetBalance := target.Balance
+		var attackerBalance, targetBalance int64
 		kind := "rob_fail"
 		if success {
 			if err := s.recordProfitCapsTx(ctx, tx, attacker, amount, now); err != nil {

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"alt-bot/internal/bot/commands/guildperm"
 	"alt-bot/internal/bot/rolepanel"
 	"alt-bot/internal/config"
 	"alt-bot/internal/service"
@@ -28,33 +29,16 @@ const (
 )
 
 func HandleRolePanel(logger zerolog.Logger, cfg config.Config, rolePanels *service.RolePanelService, event *events.ApplicationCommandInteractionCreate) {
-	guildID := event.GuildID()
-	if guildID == nil {
+	guildID, message, ok := guildperm.CheckManageGuild(event)
+	if !ok {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("このコマンドはサーバー内でのみ使用できます。").
+			SetContent(message).
 			SetEphemeral(true).
 			Build())
 		return
 	}
 
-	// Check admin permission
-	member := event.Member()
-	if member == nil {
-		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("メンバー情報を取得できません。").
-			SetEphemeral(true).
-			Build())
-		return
-	}
-	if member.Permissions&discord.PermissionManageGuild == 0 {
-		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("このコマンドはサーバー管理者のみが実行できます。").
-			SetEphemeral(true).
-			Build())
-		return
-	}
-
-	if ok, message := allowRolePanel(cfg, *guildID); !ok {
+	if ok, message := allowRolePanel(cfg, guildID); !ok {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent(message).
 			SetEphemeral(true).

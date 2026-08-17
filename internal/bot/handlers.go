@@ -70,21 +70,6 @@ func (h *Handlers) Config() config.Config {
 
 const economyDisabledMessage = "経済機能は現在無効化されています。"
 
-func checkGuildAdmin(event *events.ApplicationCommandInteractionCreate) (bool, string) {
-	if event.GuildID() == nil {
-		return false, "このコマンドはサーバー内でのみ利用できます。"
-	}
-	member := event.Member()
-	if member == nil {
-		return false, "メンバー情報を取得できません。"
-	}
-	perms := member.Permissions
-	if perms&discord.PermissionManageGuild == 0 {
-		return false, "このコマンドはサーバー管理者のみが実行できます。"
-	}
-	return true, ""
-}
-
 func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelService, cfg config.Config, ownerIDs []string, logger zerolog.Logger) *Handlers {
 	set := make(map[string]struct{}, len(ownerIDs))
 	for _, id := range ownerIDs {

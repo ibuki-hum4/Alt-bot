@@ -3,31 +3,17 @@ package mod
 import (
 	"strings"
 
+	"alt-bot/internal/bot/commands/guildperm"
+
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 )
 
 func HandleModeration(event *events.ApplicationCommandInteractionCreate) {
-	if event.GuildID() == nil {
+	guildID, message, ok := guildperm.CheckManageGuild(event)
+	if !ok {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("このコマンドはサーバー内でのみ利用できます。").
-			SetEphemeral(true).
-			Build())
-		return
-	}
-
-	// Check admin permission
-	member := event.Member()
-	if member == nil {
-		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("メンバー情報を取得できません。").
-			SetEphemeral(true).
-			Build())
-		return
-	}
-	if member.Permissions&discord.PermissionManageGuild == 0 {
-		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent("このコマンドはサーバー管理者のみが実行できます。").
+			SetContent(message).
 			SetEphemeral(true).
 			Build())
 		return
@@ -62,7 +48,6 @@ func HandleModeration(event *events.ApplicationCommandInteractionCreate) {
 	}
 
 	reason := data.String("reason")
-	guildID := *event.GuildID()
 
 	switch sub {
 	case "kick":

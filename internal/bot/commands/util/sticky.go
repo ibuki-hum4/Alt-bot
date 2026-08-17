@@ -27,7 +27,6 @@ const (
 // exported so the repost loop and the /pin confirmation show the same thing.
 func BuildStickyEmbed(content string) discord.Embed {
 	return discord.NewEmbedBuilder().
-		SetTitle("📌 固定メッセージ").
 		SetDescription(content).
 		SetColor(stickyEmbedColor).
 		Build()

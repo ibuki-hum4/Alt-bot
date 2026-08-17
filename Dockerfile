@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 go build -buildvcs=false -ldflags="-s -w" -o /out/alt-bot ./cmd/bot
 
-FROM alpine:3.23
+FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates && \
     adduser -D -H appuser

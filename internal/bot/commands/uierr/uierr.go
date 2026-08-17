@@ -69,5 +69,10 @@ func Format(err error, profitCapVerb string) (message string, recognized bool) {
 		return fmt.Sprintf("購入上限を超えています。上限: %d / 指定: %d", shopQty.Max, shopQty.Requested), true
 	}
 
+	var shopHolding *service.ShopHoldingLimitError
+	if errors.As(err, &shopHolding) {
+		return fmt.Sprintf("所持数の上限に達しています。上限: %d / 現在: %d", shopHolding.Max, shopHolding.Current), true
+	}
+
 	return "", false
 }

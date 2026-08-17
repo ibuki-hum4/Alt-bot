@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"alt-bot/ent/chainstate"
 	"alt-bot/ent/guild"
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/pricehistory"
@@ -17,6 +18,12 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	chainstateFields := schema.ChainState{}.Fields()
+	_ = chainstateFields
+	// chainstateDescLatestHash is the schema descriptor for latest_hash field.
+	chainstateDescLatestHash := chainstateFields[1].Descriptor()
+	// chainstate.DefaultLatestHash holds the default value on creation for the latest_hash field.
+	chainstate.DefaultLatestHash = chainstateDescLatestHash.Default.(string)
 	guildFields := schema.Guild{}.Fields()
 	_ = guildFields
 	// guildDescGuildID is the schema descriptor for guild_id field.

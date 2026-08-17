@@ -8,6 +8,18 @@ import (
 	"fmt"
 )
 
+// The ChainStateFunc type is an adapter to allow the use of ordinary
+// function as ChainState mutator.
+type ChainStateFunc func(context.Context, *ent.ChainStateMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChainStateFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ChainStateMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ChainStateMutation", m)
+}
+
 // The GuildFunc type is an adapter to allow the use of ordinary
 // function as Guild mutator.
 type GuildFunc func(context.Context, *ent.GuildMutation) (ent.Value, error)

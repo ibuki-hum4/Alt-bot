@@ -526,9 +526,6 @@ func (s *EconomyService) ProcessNewsTick(ctx context.Context, now time.Time) (Ne
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	result := NewsTickResult{Hit: false, Amount: int64((now.UnixNano()%90001 + 10000))}
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		state, err := s.lockMarketStateTx(ctx, tx)
@@ -611,7 +608,7 @@ func (s *EconomyService) ProcessNewsTick(ctx context.Context, now time.Time) (Ne
 		if err := s.setMarketStateTx(ctx, tx, state, activeEvent, remaining, pity, nextPrice, nextCircuit, nextBreach, reserveBalance, revenueBalance, burnedTotal, dailyDate, dailyIssued, dailyCap, now); err != nil {
 			return err
 		}
-		s.altPrice = nextPrice
+		s.setCachedALTPrice(nextPrice)
 		return nil
 	})
 	if err != nil {

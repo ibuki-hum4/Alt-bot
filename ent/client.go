@@ -11,6 +11,7 @@ import (
 
 	"alt-bot/ent/migrate"
 
+	"alt-bot/ent/chainstate"
 	"alt-bot/ent/guild"
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/pricehistory"
@@ -28,6 +29,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// ChainState is the client for interacting with the ChainState builders.
+	ChainState *ChainStateClient
 	// Guild is the client for interacting with the Guild builders.
 	Guild *GuildClient
 	// MarketState is the client for interacting with the MarketState builders.
@@ -51,6 +54,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.ChainState = NewChainStateClient(c.config)
 	c.Guild = NewGuildClient(c.config)
 	c.MarketState = NewMarketStateClient(c.config)
 	c.PriceHistory = NewPriceHistoryClient(c.config)
@@ -149,6 +153,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:            ctx,
 		config:         cfg,
+		ChainState:     NewChainStateClient(cfg),
 		Guild:          NewGuildClient(cfg),
 		MarketState:    NewMarketStateClient(cfg),
 		PriceHistory:   NewPriceHistoryClient(cfg),
@@ -174,6 +179,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:            ctx,
 		config:         cfg,
+		ChainState:     NewChainStateClient(cfg),
 		Guild:          NewGuildClient(cfg),
 		MarketState:    NewMarketStateClient(cfg),
 		PriceHistory:   NewPriceHistoryClient(cfg),
@@ -186,7 +192,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Guild.
+//		ChainState.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -209,7 +215,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Guild, c.MarketState, c.PriceHistory, c.RolePanel, c.TransactionLog, c.User,
+		c.ChainState, c.Guild, c.MarketState, c.PriceHistory, c.RolePanel,
+		c.TransactionLog, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -219,7 +226,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Guild, c.MarketState, c.PriceHistory, c.RolePanel, c.TransactionLog, c.User,
+		c.ChainState, c.Guild, c.MarketState, c.PriceHistory, c.RolePanel,
+		c.TransactionLog, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -228,6 +236,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *ChainStateMutation:
+		return c.ChainState.mutate(ctx, m)
 	case *GuildMutation:
 		return c.Guild.mutate(ctx, m)
 	case *MarketStateMutation:
@@ -242,6 +252,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.User.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// ChainStateClient is a client for the ChainState schema.
+type ChainStateClient struct {
+	config
+}
+
+// NewChainStateClient returns a client for the ChainState from the given config.
+func NewChainStateClient(c config) *ChainStateClient {
+	return &ChainStateClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chainstate.Hooks(f(g(h())))`.
+func (c *ChainStateClient) Use(hooks ...Hook) {
+	c.hooks.ChainState = append(c.hooks.ChainState, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chainstate.Intercept(f(g(h())))`.
+func (c *ChainStateClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChainState = append(c.inters.ChainState, interceptors...)
+}
+
+// Create returns a builder for creating a ChainState entity.
+func (c *ChainStateClient) Create() *ChainStateCreate {
+	mutation := newChainStateMutation(c.config, OpCreate)
+	return &ChainStateCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChainState entities.
+func (c *ChainStateClient) CreateBulk(builders ...*ChainStateCreate) *ChainStateCreateBulk {
+	return &ChainStateCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChainStateClient) MapCreateBulk(slice any, setFunc func(*ChainStateCreate, int)) *ChainStateCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChainStateCreateBulk{err: fmt.Errorf("calling to ChainStateClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChainStateCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChainStateCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChainState.
+func (c *ChainStateClient) Update() *ChainStateUpdate {
+	mutation := newChainStateMutation(c.config, OpUpdate)
+	return &ChainStateUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChainStateClient) UpdateOne(_m *ChainState) *ChainStateUpdateOne {
+	mutation := newChainStateMutation(c.config, OpUpdateOne, withChainState(_m))
+	return &ChainStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChainStateClient) UpdateOneID(id int) *ChainStateUpdateOne {
+	mutation := newChainStateMutation(c.config, OpUpdateOne, withChainStateID(id))
+	return &ChainStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChainState.
+func (c *ChainStateClient) Delete() *ChainStateDelete {
+	mutation := newChainStateMutation(c.config, OpDelete)
+	return &ChainStateDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChainStateClient) DeleteOne(_m *ChainState) *ChainStateDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChainStateClient) DeleteOneID(id int) *ChainStateDeleteOne {
+	builder := c.Delete().Where(chainstate.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChainStateDeleteOne{builder}
+}
+
+// Query returns a query builder for ChainState.
+func (c *ChainStateClient) Query() *ChainStateQuery {
+	return &ChainStateQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChainState},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChainState entity by its id.
+func (c *ChainStateClient) Get(ctx context.Context, id int) (*ChainState, error) {
+	return c.Query().Where(chainstate.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChainStateClient) GetX(ctx context.Context, id int) *ChainState {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ChainStateClient) Hooks() []Hook {
+	return c.hooks.ChainState
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChainStateClient) Interceptors() []Interceptor {
+	return c.inters.ChainState
+}
+
+func (c *ChainStateClient) mutate(ctx context.Context, m *ChainStateMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChainStateCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChainStateUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChainStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChainStateDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ChainState mutation op: %q", m.Op())
 	}
 }
 
@@ -1046,10 +1189,11 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Guild, MarketState, PriceHistory, RolePanel, TransactionLog, User []ent.Hook
+		ChainState, Guild, MarketState, PriceHistory, RolePanel, TransactionLog,
+		User []ent.Hook
 	}
 	inters struct {
-		Guild, MarketState, PriceHistory, RolePanel, TransactionLog,
+		ChainState, Guild, MarketState, PriceHistory, RolePanel, TransactionLog,
 		User []ent.Interceptor
 	}
 )

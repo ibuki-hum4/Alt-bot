@@ -75,6 +75,11 @@ func TestFormatShopErrors(t *testing.T) {
 	if !ok || !strings.Contains(msg, "10") || !strings.Contains(msg, "3") {
 		t.Errorf("Format ShopQuantityError = (%q, %v), want it to contain requested/max", msg, ok)
 	}
+
+	msg, ok = Format(&service.ShopHoldingLimitError{ItemID: "security_camera", Max: 5, Current: 5}, "獲得")
+	if !ok || !strings.Contains(msg, "5") {
+		t.Errorf("Format ShopHoldingLimitError = (%q, %v), want it to contain max/current", msg, ok)
+	}
 }
 
 func TestFormatMarketAndCircuitErrors(t *testing.T) {

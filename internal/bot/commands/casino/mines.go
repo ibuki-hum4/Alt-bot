@@ -75,13 +75,20 @@ func handleMines(event *events.ApplicationCommandInteractionCreate, guildID snow
 	}
 
 	sessionID := newMinesSessionID()
+
+	// generateMinesMask shuffles the shared minesRand, which is not safe for
+	// concurrent use, so it runs under minesMu.
+	minesMu.Lock()
+	mask := generateMinesMask(minesDefaultCount)
+	minesMu.Unlock()
+
 	s := &minesSession{
 		ID:              sessionID,
 		UserID:          event.User().ID.String(),
 		GuildID:         guildID.String(),
 		Bet:             bet,
 		Expires:         time.Now().Add(casinoInteractionTimeout).Unix(),
-		MinesMask:       generateMinesMask(minesDefaultCount),
+		MinesMask:       mask,
 		OpenedMask:      0,
 		MinesCount:      minesDefaultCount,
 		SafeCount:       0,
@@ -311,6 +318,9 @@ func minesPayout(bet int64, safeCount int) int64 {
 	return int64(math.Floor(float64(bet) * minesMultiplier(safeCount)))
 }
 
+// generateMinesMask must NOT lock minesMu itself; callers take the lock so
+// this stays consistent with buildBlackjackDeck, whose reshuffle path is
+// reached from callers already holding their mutex.
 func generateMinesMask(count int) uint32 {
 	positions := make([]int, 0, minesPlayableCells())
 	for i := 0; i < minesPlayableCells(); i++ {
@@ -337,7 +347,9 @@ func minesPlayableCells() int {
 func newMinesSessionID() string {
 	b := make([]byte, 6)
 	if _, err := crand.Read(b); err != nil {
+		minesMu.Lock()
 		minesRand.Read(b)
+		minesMu.Unlock()
 	}
 	return hex.EncodeToString(b)
 }

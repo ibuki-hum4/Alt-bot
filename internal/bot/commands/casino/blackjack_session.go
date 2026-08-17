@@ -122,13 +122,21 @@ func startBlackjackSession(event *events.ApplicationCommandInteractionCreate, gu
 		return
 	}
 
+	// buildBlackjackDeck shuffles the shared blackjackRand, which is not safe
+	// for concurrent use, so it has to run under blackjackMu. The mutex is
+	// taken here rather than inside buildBlackjackDeck because the reshuffle
+	// path in blackjackTakeCard is reached by callers that already hold it.
+	blackjackMu.Lock()
+	deck := buildBlackjackDeck()
+	blackjackMu.Unlock()
+
 	session := &blackjackSession{
 		ID:           newBlackjackSessionID(),
 		UserID:       event.User().ID.String(),
 		GuildID:      guildID.String(),
 		BaseBet:      bet,
 		Expires:      time.Now().Add(blackjackTimeout).Unix(),
-		Deck:         buildBlackjackDeck(),
+		Deck:         deck,
 		Dealer:       nil,
 		Hands:        []blackjackHand{{Bet: bet}},
 		ActiveHand:   0,
@@ -809,6 +817,11 @@ func blackjackTakeCard(session *blackjackSession) blackjackCard {
 	return card
 }
 
+// buildBlackjackDeck must NOT lock blackjackMu itself: blackjackTakeCard
+// calls it to reshuffle an exhausted shoe, and every path into that
+// (blackjackHit, blackjackDouble, blackjackSplit, blackjackPlayDealer via
+// settleBlackjack) already holds the mutex, which is not reentrant. Callers
+// that reach it from outside a locked section must take the lock themselves.
 func buildBlackjackDeck() []blackjackCard {
 	deck := make([]blackjackCard, 0, blackjackDecks*52)
 	for deckIndex := 0; deckIndex < blackjackDecks; deckIndex++ {
@@ -878,7 +891,9 @@ func blackjackCardString(card blackjackCard) string {
 func newBlackjackSessionID() string {
 	b := make([]byte, 6)
 	if _, err := crand.Read(b); err != nil {
+		blackjackMu.Lock()
 		blackjackRand.Read(b)
+		blackjackMu.Unlock()
 	}
 	return hex.EncodeToString(b)
 }

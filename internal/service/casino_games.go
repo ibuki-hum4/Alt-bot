@@ -70,9 +70,6 @@ func (s *EconomyService) playWeightedCasino(ctx context.Context, discordID strin
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	draw := s.rand.Intn(totalWeight)
 	picked := drawCasinoOutcome(draw, outcomes)
 	scaledMultiplier := picked.multiplier * rtpScaleForTarget(targetRTP, weightedBaseRTP(outcomes))
@@ -81,7 +78,6 @@ func (s *EconomyService) playWeightedCasino(ctx context.Context, discordID strin
 	net := payout - bet - entryFee
 
 	var result CasinoPlayResult
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		u, err := s.lockOrCreateUserForUpdateTx(ctx, tx, discordID, "casino")
 		if err != nil {
@@ -104,7 +100,7 @@ func (s *EconomyService) playWeightedCasino(ctx context.Context, discordID strin
 			return fmt.Errorf("failed to update user in casino: %w", err)
 		}
 
-		nextHash, err = s.appendSignedLog(ctx, tx, txLogInput{
+		_, err = s.appendSignedLog(ctx, tx, txLogInput{
 			DiscordID:    discordID,
 			Kind:         kind,
 			YenDelta:     net,
@@ -135,7 +131,6 @@ func (s *EconomyService) playWeightedCasino(ctx context.Context, discordID strin
 		return CasinoPlayResult{}, err
 	}
 
-	s.prevHash = nextHash
 	return result, nil
 }
 

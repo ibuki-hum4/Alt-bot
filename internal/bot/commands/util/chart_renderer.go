@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 	"time"
 
 	"alt-bot/internal/service"
@@ -98,12 +99,27 @@ func RenderMarketChartPNG(points []service.PricePoint, snapshot service.RateSnap
 	return buf.Bytes(), nil
 }
 
+// chartFont is parsed once and reused for every chart render. Parsing the
+// embedded TTF is the expensive part of loadFontFace; building a Face at a
+// given size from an already-parsed font is cheap, so every /chart call was
+// previously paying to re-parse the same font bytes four times over.
+var (
+	chartFontOnce sync.Once
+	chartFont     *opentype.Font
+	chartFontErr  error
+)
+
 func loadFontFace(size float64) (font.Face, error) {
-	ft, err := opentype.Parse(goregular.TTF)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse font: %w", err)
+	chartFontOnce.Do(func() {
+		chartFont, chartFontErr = opentype.Parse(goregular.TTF)
+		if chartFontErr != nil {
+			chartFontErr = fmt.Errorf("failed to parse font: %w", chartFontErr)
+		}
+	})
+	if chartFontErr != nil {
+		return nil, chartFontErr
 	}
-	face, err := opentype.NewFace(ft, &opentype.FaceOptions{Size: size, DPI: 72})
+	face, err := opentype.NewFace(chartFont, &opentype.FaceOptions{Size: size, DPI: 72})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create font face: %w", err)
 	}

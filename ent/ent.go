@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"alt-bot/ent/chainstate"
 	"alt-bot/ent/guild"
 	"alt-bot/ent/marketstate"
 	"alt-bot/ent/pricehistory"
@@ -78,6 +79,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			chainstate.Table:     chainstate.ValidColumn,
 			guild.Table:          guild.ValidColumn,
 			marketstate.Table:    marketstate.ValidColumn,
 			pricehistory.Table:   pricehistory.ValidColumn,

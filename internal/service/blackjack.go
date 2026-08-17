@@ -34,11 +34,7 @@ func (s *EconomyService) blackjackAdjustBalance(ctx context.Context, discordID s
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var balance int64
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		u, err := s.lockOrCreateUserForUpdateTx(ctx, tx, discordID, "blackjack")
 		if err != nil {
@@ -61,7 +57,7 @@ func (s *EconomyService) blackjackAdjustBalance(ctx context.Context, discordID s
 			return fmt.Errorf("failed to update user in blackjack: %w", err)
 		}
 
-		nextHash, err = s.appendSignedLog(ctx, tx, txLogInput{
+		_, err = s.appendSignedLog(ctx, tx, txLogInput{
 			DiscordID:    discordID,
 			Kind:         kind,
 			YenDelta:     delta,
@@ -84,6 +80,5 @@ func (s *EconomyService) blackjackAdjustBalance(ctx context.Context, discordID s
 		return 0, err
 	}
 
-	s.prevHash = nextHash
 	return balance, nil
 }

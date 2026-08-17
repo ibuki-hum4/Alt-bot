@@ -18,6 +18,10 @@ const (
 	ShopItemKindSecurityCamera ShopItemKind = "security_camera"
 )
 
+// MaxSecurityCameraHoldCount caps how many security cameras a user may hold
+// at once, independent of how many they buy in a single /shop purchase.
+const MaxSecurityCameraHoldCount int64 = 5
+
 type ShopItem struct {
 	ID          string
 	Name        string
@@ -54,6 +58,16 @@ type ShopQuantityError struct {
 
 func (e *ShopQuantityError) Error() string {
 	return fmt.Sprintf("shop quantity exceeds limit: requested=%d max=%d", e.Requested, e.Max)
+}
+
+type ShopHoldingLimitError struct {
+	ItemID  string
+	Max     int64
+	Current int64
+}
+
+func (e *ShopHoldingLimitError) Error() string {
+	return fmt.Sprintf("shop holding limit exceeded: item=%s max=%d current=%d", e.ItemID, e.Max, e.Current)
 }
 
 func defaultShopCatalog() []ShopItem {
@@ -103,11 +117,7 @@ func (s *EconomyService) BuyShopItem(ctx context.Context, discordID, itemID stri
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var result ShopPurchaseResult
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		u, err := s.lockOrCreateUserForUpdateTx(ctx, tx, discordID, "shop")
 		if err != nil {
@@ -132,6 +142,9 @@ func (s *EconomyService) BuyShopItem(ctx context.Context, discordID, itemID stri
 			newALT += item.Value * quantity
 		case ShopItemKindSecurityCamera:
 			newCameraCount += quantity
+			if newCameraCount > MaxSecurityCameraHoldCount {
+				return &ShopHoldingLimitError{ItemID: item.ID, Max: MaxSecurityCameraHoldCount, Current: u.SecurityCameraCount}
+			}
 		default:
 			return fmt.Errorf("unsupported shop item kind: %s", item.Kind)
 		}
@@ -148,7 +161,7 @@ func (s *EconomyService) BuyShopItem(ctx context.Context, discordID, itemID stri
 			return fmt.Errorf("failed to update user for shop purchase: %w", err)
 		}
 
-		nextHash, err = s.appendSignedLog(ctx, tx, txLogInput{
+		_, err = s.appendSignedLog(ctx, tx, txLogInput{
 			DiscordID:    discordID,
 			Kind:         "shop_buy_" + item.ID,
 			YenDelta:     -totalPrice,
@@ -180,6 +193,5 @@ func (s *EconomyService) BuyShopItem(ctx context.Context, discordID, itemID stri
 		return ShopPurchaseResult{}, err
 	}
 
-	s.prevHash = nextHash
 	return result, nil
 }

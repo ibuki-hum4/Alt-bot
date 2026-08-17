@@ -22,28 +22,6 @@ func Definitions() []discord.ApplicationCommandCreate {
 			Description: "仕事でYenを稼ぎます(ボタン選択)",
 		},
 		discord.SlashCommandCreate{
-			Name:        "pay",
-			Description: "他ユーザーへYenを送金",
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionUser{
-					Name:        "user",
-					Description: "送金先ユーザー",
-					Required:    true,
-				},
-				discord.ApplicationCommandOptionInt{
-					Name:        "amount",
-					Description: "送金額",
-					Required:    true,
-					MinValue:    intPointer(1),
-				},
-				discord.ApplicationCommandOptionString{
-					Name:        "note",
-					Description: "メモ(任意)",
-					Required:    false,
-				},
-			},
-		},
-		discord.SlashCommandCreate{
 			Name:        "rob",
 			Description: "他ユーザーからYenを強奪(失敗すると罰金、防犯カメラで防御可)",
 			Options: []discord.ApplicationCommandOption{

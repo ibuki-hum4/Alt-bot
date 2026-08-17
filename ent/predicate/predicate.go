@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// ChainState is the predicate function for chainstate builders.
+type ChainState func(*sql.Selector)
+
 // Guild is the predicate function for guild builders.
 type Guild func(*sql.Selector)
 

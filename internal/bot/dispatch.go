@@ -35,12 +35,6 @@ func (h *Handlers) dispatchApplicationCommand(event *events.ApplicationCommandIn
 			return
 		}
 		cmdutil.HandleWorkSlash(h.logger, event)
-	case "pay":
-		if !h.cfg.EconomyEnabled {
-			h.replyEconomyDisabledSlash(event, " /pay は利用できません。")
-			return
-		}
-		cmdutil.HandlePay(h.logger, h.economy, event)
 	case "rob":
 		if !h.cfg.EconomyEnabled {
 			h.replyEconomyDisabledSlash(event, " /rob は利用できません。")

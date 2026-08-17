@@ -12,13 +12,12 @@ import (
 	"math"
 	"math/rand"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"text/template"
 	"time"
 
 	"alt-bot/ent"
 	"alt-bot/ent/marketstate"
-	"alt-bot/ent/transactionlog"
 	"alt-bot/ent/user"
 	"alt-bot/internal/config"
 
@@ -114,16 +113,24 @@ type EconomyService struct {
 	logger zerolog.Logger
 	cfg    config.Config
 	rules  map[WorkDifficulty]workRule
-	rand   *rand.Rand
+	rand   *lockedRand
 	news   *NewsEngine
 
+	// lastNewsEventType and sameNewsEventStreak are only touched by
+	// limitConsecutiveNewsEvent, called only by ProcessNewsTick, whose only
+	// caller is the single auto-news ticker goroutine in internal/bot. They
+	// need no synchronization while that stays true; adding a second way to
+	// trigger a news tick means revisiting this (and NewsEngine.rng, which
+	// is owned the same way).
 	lastNewsEventType   EventType
 	sameNewsEventStreak int
 
-	mu        sync.Mutex
-	altPrice  float64
-	impactK   float64
-	prevHash  string
+	// altPrice caches market_state.last_price for the pre-confirmation
+	// display estimate in /crypto. It is advisory only: trades settle
+	// against a ForUpdate() read of market_state inside their own
+	// transaction. Stored as float64 bits so it can be read without a lock.
+	altPrice atomic.Uint64
+
 	publicKey ed25519.PublicKey
 	signer    ed25519.PrivateKey
 
@@ -149,7 +156,6 @@ const (
 	CurrencyALTUnit = "ALT"
 
 	defaultALTPrice = 100.0
-	defaultImpactK  = 2.5
 	minALTPrice     = 1.0
 )
 
@@ -166,20 +172,8 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 		return nil, fmt.Errorf("failed to generate ed25519 keypair: %w", err)
 	}
 
-	prevHash := ""
-	ctx, cancel := context.WithTimeout(context.Background(), serviceTimeout)
-	defer cancel()
-	last, qerr := client.TransactionLog.Query().
-		Order(ent.Desc(transactionlog.FieldCreatedAt)).
-		First(ctx)
-	if qerr == nil {
-		prevHash = last.Hash
-	} else if !ent.IsNotFound(qerr) {
-		logger.Warn().Err(qerr).Msg("failed to load latest transaction hash; starting new chain")
-	}
-
 	loc := loadTimeLocation(cfg.TimeZone)
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng := newLockedRand(time.Now().UnixNano())
 	newsRng := rand.New(rand.NewSource(time.Now().UnixNano() + 991))
 	gbmMu := clampFloat64(cfg.MarketGBMMu, 0.00002, -0.01, 0.01)
 	gbmSigma := clampFloat64(cfg.MarketGBMSigma, 0.003, 0.0001, 0.05)
@@ -215,9 +209,6 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 		},
 		rand:                 rng,
 		news:                 newNewsEngine(newsRng, loc),
-		altPrice:             defaultALTPrice,
-		impactK:              defaultImpactK,
-		prevHash:             prevHash,
 		publicKey:            pub,
 		signer:               priv,
 		marketLocation:       loc,
@@ -232,6 +223,8 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 		casinoRTPMines:       casinoRTPMines,
 	}
 
+	svc.setCachedALTPrice(defaultALTPrice)
+
 	marketCtx, marketCancel := context.WithTimeout(context.Background(), serviceTimeout)
 	defer marketCancel()
 	state, stateErr := svc.ensureMarketState(marketCtx)
@@ -239,7 +232,7 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 		logger.Warn().Err(stateErr).Msg("failed to initialize market state; using defaults")
 	} else {
 		if state.LastPrice >= minALTPrice {
-			svc.altPrice = state.LastPrice
+			svc.setCachedALTPrice(state.LastPrice)
 		}
 		if state.CurrentEvent != "" {
 			logger.Info().
@@ -248,6 +241,12 @@ func NewEconomyService(client *ent.Client, cfg config.Config, logger zerolog.Log
 				Int("pity_counter", state.PityCounter).
 				Msg("market state restored")
 		}
+	}
+
+	chainCtx, chainCancel := context.WithTimeout(context.Background(), serviceTimeout)
+	defer chainCancel()
+	if _, chainErr := svc.ensureChainState(chainCtx); chainErr != nil {
+		logger.Warn().Err(chainErr).Msg("failed to initialize chain state; first append will seed it")
 	}
 
 	return svc, nil
@@ -278,10 +277,15 @@ func clampFloat64(v float64, fallback float64, min float64, max float64) float64
 	return v
 }
 
+// CurrentALTPrice returns the last price this process observed. It backs the
+// pre-confirmation estimate shown by /crypto only; buys and sells settle
+// against a freshly locked market_state row inside their own transaction.
 func (s *EconomyService) CurrentALTPrice() float64 {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.altPrice
+	return math.Float64frombits(s.altPrice.Load())
+}
+
+func (s *EconomyService) setCachedALTPrice(price float64) {
+	s.altPrice.Store(math.Float64bits(price))
 }
 
 func (s *EconomyService) EnsureUser(ctx context.Context, discordID string) (*ent.User, error) {
@@ -415,8 +419,6 @@ func (s *EconomyService) CanAwardProfitThisWeek(ctx context.Context, discordID s
 func (s *EconomyService) CanAwardProfit(ctx context.Context, discordID string, profit int64) (bool, error) {
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	if profit < 0 {
 		return true, nil
@@ -454,8 +456,6 @@ func isSameDay(t1, t2 time.Time) bool {
 func (s *EconomyService) Work(ctx context.Context, discordID string, difficulty WorkDifficulty) (WorkResult, error) {
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	rule, ok := s.rules[difficulty]
 	if !ok {
@@ -465,7 +465,6 @@ func (s *EconomyService) Work(ctx context.Context, discordID string, difficulty 
 	now := time.Now().UTC()
 
 	var result WorkResult
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		state, err := s.lockMarketStateTx(ctx, tx)
 		if err != nil {
@@ -552,7 +551,7 @@ func (s *EconomyService) Work(ctx context.Context, discordID string, difficulty 
 			Str("kind", "work").
 			Msg("PRICE_UPDATED")
 
-		nextHash, err = s.appendSignedLog(ctx, tx, txLogInput{
+		_, err = s.appendSignedLog(ctx, tx, txLogInput{
 			DiscordID:    discordID,
 			Kind:         "work",
 			YenDelta:     netReward,
@@ -576,13 +575,12 @@ func (s *EconomyService) Work(ctx context.Context, discordID string, difficulty 
 			AltBalance: u.CryptoBalance,
 			NextWorkAt: nextEnd,
 		}
-		s.altPrice = nextPrice
+		s.setCachedALTPrice(nextPrice)
 		return nil
 	})
 	if err != nil {
 		return WorkResult{}, err
 	}
-	s.prevHash = nextHash
 	return result, nil
 }
 
@@ -592,11 +590,8 @@ func (s *EconomyService) BuyCrypto(ctx context.Context, discordID string, amount
 	}
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	var result BuyCryptoResult
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		state, err := s.lockMarketStateTx(ctx, tx)
 		if err != nil {
@@ -681,7 +676,7 @@ func (s *EconomyService) BuyCrypto(ctx context.Context, discordID string, amount
 			Int64("volume", amount).
 			Msg("PRICE_UPDATED")
 
-		nextHash, err = s.appendSignedLog(ctx, tx, txLogInput{
+		_, err = s.appendSignedLog(ctx, tx, txLogInput{
 			DiscordID:    discordID,
 			Kind:         "buy",
 			YenDelta:     -totalCost,
@@ -713,14 +708,13 @@ func (s *EconomyService) BuyCrypto(ctx context.Context, discordID string, amount
 			Float64("settled_price", settledPrice).
 			Float64("price_after", priceAfter).
 			Msg("TRADE_EXECUTED")
-		s.altPrice = priceAfter
+		s.setCachedALTPrice(priceAfter)
 		return nil
 	})
 	if err != nil {
 		return BuyCryptoResult{}, err
 	}
 
-	s.prevHash = nextHash
 	return result, nil
 }
 
@@ -730,12 +724,9 @@ func (s *EconomyService) SellCrypto(ctx context.Context, discordID string, amoun
 	}
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	now := time.Now().UTC()
 
 	var result SellCryptoResult
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		state, err := s.lockMarketStateTx(ctx, tx)
 		if err != nil {
@@ -831,7 +822,7 @@ func (s *EconomyService) SellCrypto(ctx context.Context, discordID string, amoun
 			Int64("volume", amount).
 			Msg("PRICE_UPDATED")
 
-		nextHash, err = s.appendSignedLog(ctx, tx, txLogInput{
+		_, err = s.appendSignedLog(ctx, tx, txLogInput{
 			DiscordID:    discordID,
 			Kind:         "sell",
 			YenDelta:     totalRevenue,
@@ -863,14 +854,13 @@ func (s *EconomyService) SellCrypto(ctx context.Context, discordID string, amoun
 			Float64("settled_price", settledPrice).
 			Float64("price_after", priceAfter).
 			Msg("TRADE_EXECUTED")
-		s.altPrice = priceAfter
+		s.setCachedALTPrice(priceAfter)
 		return nil
 	})
 	if err != nil {
 		return SellCryptoResult{}, err
 	}
 
-	s.prevHash = nextHash
 	return result, nil
 }
 
@@ -887,8 +877,10 @@ type txLogInput struct {
 	ALTAfter     int64
 }
 
+// appendSignedLog records a single chained entry. It locks chain_state, so it
+// must be the last lock the surrounding transaction takes.
 func (s *EconomyService) appendSignedLog(ctx context.Context, tx *ent.Tx, in txLogInput) (string, error) {
-	return s.appendSignedLogWithPrevHash(ctx, tx, s.prevHash, in)
+	return s.appendSignedLogChain(ctx, tx, in)
 }
 
 func (s *EconomyService) appendSignedLogWithPrevHash(ctx context.Context, tx *ent.Tx, prevHash string, in txLogInput) (string, error) {

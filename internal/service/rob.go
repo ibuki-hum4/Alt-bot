@@ -66,12 +66,8 @@ func (s *EconomyService) RobUser(ctx context.Context, attackerDiscordID, targetD
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	now := time.Now().UTC()
 	var result RobResult
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		ids := []string{attackerDiscordID, targetDiscordID}
 		sort.Strings(ids)
@@ -109,16 +105,14 @@ func (s *EconomyService) RobUser(ctx context.Context, attackerDiscordID, targetD
 				return fmt.Errorf("failed to consume security camera in rob: %w", err)
 			}
 
-			hash, err := s.appendSignedLog(ctx, tx, txLogInput{
+			if _, err := s.appendSignedLog(ctx, tx, txLogInput{
 				DiscordID:    attackerDiscordID,
 				Kind:         "rob_blocked",
 				BalanceAfter: attacker.Balance,
 				ALTAfter:     attacker.CryptoBalance,
-			})
-			if err != nil {
+			}); err != nil {
 				return err
 			}
-			nextHash = hash
 
 			result = RobResult{
 				AttackerDiscordID: attackerDiscordID,
@@ -170,28 +164,24 @@ func (s *EconomyService) RobUser(ctx context.Context, attackerDiscordID, targetD
 			return fmt.Errorf("failed to update target in rob: %w", err)
 		}
 
-		prevHash := s.prevHash
-		attackerHash, err := s.appendSignedLogWithPrevHash(ctx, tx, prevHash, txLogInput{
-			DiscordID:    attackerDiscordID,
-			Kind:         kind,
-			YenDelta:     attackerBalance - attacker.Balance,
-			BalanceAfter: attackerBalance,
-			ALTAfter:     attacker.CryptoBalance,
-		})
-		if err != nil {
+		if _, err := s.appendSignedLogChain(ctx, tx,
+			txLogInput{
+				DiscordID:    attackerDiscordID,
+				Kind:         kind,
+				YenDelta:     attackerBalance - attacker.Balance,
+				BalanceAfter: attackerBalance,
+				ALTAfter:     attacker.CryptoBalance,
+			},
+			txLogInput{
+				DiscordID:    targetDiscordID,
+				Kind:         kind,
+				YenDelta:     targetBalance - target.Balance,
+				BalanceAfter: targetBalance,
+				ALTAfter:     target.CryptoBalance,
+			},
+		); err != nil {
 			return err
 		}
-		targetHash, err := s.appendSignedLogWithPrevHash(ctx, tx, attackerHash, txLogInput{
-			DiscordID:    targetDiscordID,
-			Kind:         kind,
-			YenDelta:     targetBalance - target.Balance,
-			BalanceAfter: targetBalance,
-			ALTAfter:     target.CryptoBalance,
-		})
-		if err != nil {
-			return err
-		}
-		nextHash = targetHash
 
 		result = RobResult{
 			AttackerDiscordID: attackerDiscordID,
@@ -208,6 +198,5 @@ func (s *EconomyService) RobUser(ctx context.Context, attackerDiscordID, targetD
 		return RobResult{}, err
 	}
 
-	s.prevHash = nextHash
 	return result, nil
 }

@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// ChainState is the client for interacting with the ChainState builders.
+	ChainState *ChainStateClient
 	// Guild is the client for interacting with the Guild builders.
 	Guild *GuildClient
 	// MarketState is the client for interacting with the MarketState builders.
@@ -155,6 +157,7 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.ChainState = NewChainStateClient(tx.config)
 	tx.Guild = NewGuildClient(tx.config)
 	tx.MarketState = NewMarketStateClient(tx.config)
 	tx.PriceHistory = NewPriceHistoryClient(tx.config)
@@ -170,7 +173,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Guild.QueryXXX(), the query will be executed
+// applies a query, for example: ChainState.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

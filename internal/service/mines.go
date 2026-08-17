@@ -17,11 +17,7 @@ func (s *EconomyService) MinesPlaceBet(ctx context.Context, discordID string, be
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var balance int64
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		u, err := s.lockUserForUpdateTx(ctx, tx, discordID)
 		if err != nil {
@@ -42,7 +38,7 @@ func (s *EconomyService) MinesPlaceBet(ctx context.Context, discordID string, be
 			return fmt.Errorf("failed to update user in mines bet: %w", err)
 		}
 
-		nextHash, err = s.appendSignedLog(ctx, tx, txLogInput{
+		_, err = s.appendSignedLog(ctx, tx, txLogInput{
 			DiscordID:    discordID,
 			Kind:         "casino_mines_bet",
 			YenDelta:     -totalDebit,
@@ -63,7 +59,6 @@ func (s *EconomyService) MinesPlaceBet(ctx context.Context, discordID string, be
 		return 0, err
 	}
 
-	s.prevHash = nextHash
 	return balance, nil
 }
 
@@ -80,11 +75,7 @@ func (s *EconomyService) MinesCashout(ctx context.Context, discordID string, pay
 	ctx, cancel := withServiceTimeout(ctx)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var balance int64
-	var nextHash string
 	err := ent.WithTx(ctx, s.client, func(tx *ent.Tx) error {
 		u, err := s.lockUserForUpdateTx(ctx, tx, discordID)
 		if err != nil {
@@ -103,7 +94,7 @@ func (s *EconomyService) MinesCashout(ctx context.Context, discordID string, pay
 			return fmt.Errorf("failed to update user in mines cashout: %w", err)
 		}
 
-		nextHash, err = s.appendSignedLog(ctx, tx, txLogInput{
+		_, err = s.appendSignedLog(ctx, tx, txLogInput{
 			DiscordID:    discordID,
 			Kind:         "casino_mines_cashout",
 			YenDelta:     netPayout,
@@ -124,6 +115,5 @@ func (s *EconomyService) MinesCashout(ctx context.Context, discordID string, pay
 		return 0, err
 	}
 
-	s.prevHash = nextHash
 	return balance, nil
 }

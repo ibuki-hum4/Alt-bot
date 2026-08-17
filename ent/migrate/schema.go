@@ -8,6 +8,17 @@ import (
 )
 
 var (
+	// ChainStatesColumns holds the columns for the "chain_states" table.
+	ChainStatesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "latest_hash", Type: field.TypeString, Default: ""},
+	}
+	// ChainStatesTable holds the schema information for the "chain_states" table.
+	ChainStatesTable = &schema.Table{
+		Name:       "chain_states",
+		Columns:    ChainStatesColumns,
+		PrimaryKey: []*schema.Column{ChainStatesColumns[0]},
+	}
 	// GuildsColumns holds the columns for the "guilds" table.
 	GuildsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -171,6 +182,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		ChainStatesTable,
 		GuildsTable,
 		MarketStatesTable,
 		PriceHistoriesTable,

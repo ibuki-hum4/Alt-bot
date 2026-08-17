@@ -199,6 +199,60 @@ func HandleStickyModal(
 		Build())
 }
 
+// HandleStickyMessageCommand turns an existing message into the channel's
+// sticky. Discord includes the targeted message in the interaction payload, so
+// its text is available here without the privileged message content intent.
+func HandleStickyMessageCommand(
+	logger zerolog.Logger,
+	setSticky StickySetter,
+	event *events.ApplicationCommandInteractionCreate,
+) {
+	guildID, permMessage, ok := guildperm.CheckManageGuild(event)
+	if !ok {
+		replyStickyEphemeral(event, permMessage)
+		return
+	}
+
+	target := event.MessageCommandInteractionData().TargetMessage()
+	content := strings.TrimSpace(target.Content)
+	if content == "" {
+		// Attachment- or embed-only messages carry no text to repost, and an
+		// embed cannot be rebuilt faithfully from another message's embed.
+		replyStickyEphemeral(event, "このメッセージには本文がないため固定できません。テキストを含むメッセージを選んでください。")
+		return
+	}
+	if len(content) > service.StickyMessageMaxLength {
+		replyStickyEphemeral(event, fmt.Sprintf("このメッセージは長すぎます。%d 文字以内のメッセージを選んでください。", service.StickyMessageMaxLength))
+		return
+	}
+
+	channelID := event.ChannelID()
+	if err := setSticky(guildID, channelID, content, event.User().ID.String()); err != nil {
+		logger.Error().Err(err).
+			Str("guild_id", guildID.String()).
+			Str("channel_id", channelID.String()).
+			Msg("failed to configure sticky message from message command")
+		replyStickyEphemeral(event, "固定メッセージの設定に失敗しました。時間をおいて再試行してください。")
+		return
+	}
+
+	logger.Info().
+		Str("guild_id", guildID.String()).
+		Str("channel_id", channelID.String()).
+		Str("source_message_id", target.ID.String()).
+		Msg("sticky message configured from message command")
+
+	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+		SetEmbeds(discord.NewEmbedBuilder().
+			SetTitle("固定メッセージを設定しました").
+			SetDescription(content).
+			SetColor(stickyEmbedColor).
+			SetFooterText("次の発言から最下部に再投稿されます。解除は /pin off").
+			Build()).
+		SetEphemeral(true).
+		Build())
+}
+
 func replyStickyEphemeral(event *events.ApplicationCommandInteractionCreate, content string) {
 	_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 		SetContent(content).

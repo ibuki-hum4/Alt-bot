@@ -13,4 +13,4 @@ resources:
 
 images:
   - name: docker.io/kemar1/alt-bot
-    newTag: 1.5.1
+    newTag: 1.6.0

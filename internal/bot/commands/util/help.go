@@ -16,6 +16,7 @@ func HandleHelp(event *events.ApplicationCommandInteractionCreate) {
 		AddField("Moderation", "/mod kick|ban|mute user ...", false).
 		AddField("Admin", "/commands reload (Bot Owner only)", false).
 		AddField("Role Panel", "/rp create, /rp add, /rp delete", false).
+		AddField("右クリックメニュー", "メッセージを右クリック → アプリ → 「固定メッセージに設定」で、既存のメッセージをそのまま固定できます。", false).
 		AddField("Notes", "mod と commands は権限設定により表示/実行制限があります。", false).
 		Build()
 

@@ -7,6 +7,12 @@ import (
 	"alt-bot/internal/bot/rolepanel"
 )
 
+// StickyMessageCommandName is the message context menu entry (right click a
+// message, then Apps) that turns that message into the channel's sticky. It
+// lives here rather than in the util package because the command handlers
+// already import this package, and the reverse would be an import cycle.
+const StickyMessageCommandName = "固定メッセージに設定"
+
 func Definitions() []discord.ApplicationCommandCreate {
 	return []discord.ApplicationCommandCreate{
 		discord.SlashCommandCreate{
@@ -284,6 +290,11 @@ func Definitions() []discord.ApplicationCommandCreate {
 		discord.SlashCommandCreate{
 			Name:        "rate",
 			Description: "現在価格と24h変動を表示",
+		},
+		// Message context menu: right click a message, then Apps.
+		discord.MessageCommandCreate{
+			Name:                     StickyMessageCommandName,
+			DefaultMemberPermissions: disgojson.NewNullablePtr(discord.PermissionManageGuild),
 		},
 		discord.SlashCommandCreate{
 			Name:        "chart",

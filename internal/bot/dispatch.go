@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	rootcommands "alt-bot/internal/bot/commands"
 	cmdcasino "alt-bot/internal/bot/commands/casino"
 	cmdcrypto "alt-bot/internal/bot/commands/crypto"
 	cmdmod "alt-bot/internal/bot/commands/mod"
@@ -15,12 +16,20 @@ import (
 
 func (h *Handlers) dispatchApplicationCommand(event *events.ApplicationCommandInteractionCreate) {
 	userID := event.User().ID.String()
-	name := event.SlashCommandInteractionData().CommandName()
+	// Data.CommandName() works for every command type. SlashCommandInteractionData()
+	// must not be used before the type is known: it is an unchecked type
+	// assertion and panics on a context menu command.
+	name := event.Data.CommandName()
 	if ok, message := h.allowSlash(userID, name, time.Now()); !ok {
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent(message).
 			SetEphemeral(true).
 			Build())
+		return
+	}
+
+	if event.Data.Type() == discord.ApplicationCommandTypeMessage {
+		h.dispatchMessageCommand(event, name)
 		return
 	}
 
@@ -128,6 +137,24 @@ func (h *Handlers) dispatchApplicationCommand(event *events.ApplicationCommandIn
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のコマンドです").
+			SetEphemeral(true).
+			Build())
+	}
+}
+
+// dispatchMessageCommand routes the message context menu commands (right click
+// a message, then Apps).
+func (h *Handlers) dispatchMessageCommand(event *events.ApplicationCommandInteractionCreate, name string) {
+	switch name {
+	case rootcommands.StickyMessageCommandName:
+		if !h.cfg.StickyEnabled {
+			h.replyFeatureDisabledSlash(event, "固定メッセージ", " この操作は利用できません。")
+			return
+		}
+		cmdutil.HandleStickyMessageCommand(h.logger, h.SetStickyMessage, event)
+	default:
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("未対応の操作です").
 			SetEphemeral(true).
 			Build())
 	}

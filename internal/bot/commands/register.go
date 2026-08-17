@@ -153,14 +153,7 @@ func Definitions() []discord.ApplicationCommandCreate {
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionSubCommand{
 					Name:        "set",
-					Description: "このチャンネルの固定メッセージを設定",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionString{
-							Name:        "message",
-							Description: "固定表示する本文",
-							Required:    true,
-						},
-					},
+					Description: "このチャンネルの固定メッセージを設定(入力欄が開きます)",
 				},
 				discord.ApplicationCommandOptionSubCommand{
 					Name:        "off",

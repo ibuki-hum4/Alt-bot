@@ -31,7 +31,9 @@ data:
   # Sticky messages (/pin). Enabling this makes the bot request the guild
   # message gateway intent so it can see when a channel gets a new message.
   ALTBOT_STICKY_ENABLED: "true"
-  ALTBOT_STICKY_DEBOUNCE_SECONDS: "5"
+  # Shortest gap between reposts in one channel. The first repost after a quiet
+  # channel is immediate; this only throttles repeats.
+  ALTBOT_STICKY_DEBOUNCE_SECONDS: "3"
   # Profit caps
   ALTBOT_DAILY_PROFIT_CAP: "3500000"
   ALTBOT_WEEKLY_PROFIT_CAP: "15000000"

@@ -113,7 +113,7 @@ func (h *Handlers) dispatchApplicationCommand(event *events.ApplicationCommandIn
 			h.replyFeatureDisabledSlash(event, "固定メッセージ", " /pin は利用できません。")
 			return
 		}
-		cmdutil.HandleSticky(h.logger, h.SetStickyMessage, h.DisableStickyMessage, h.StickyMessageStatus, event)
+		cmdutil.HandleSticky(h.logger, h.DisableStickyMessage, h.StickyMessageStatus, event)
 	case "rp":
 		cmdutil.HandleRolePanel(h.logger, h.cfg, h.rolePanels, event)
 	case "mod":
@@ -128,6 +128,25 @@ func (h *Handlers) dispatchApplicationCommand(event *events.ApplicationCommandIn
 	default:
 		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("未対応のコマンドです").
+			SetEphemeral(true).
+			Build())
+	}
+}
+
+func (h *Handlers) dispatchModalSubmit(event *events.ModalSubmitInteractionCreate) {
+	switch {
+	case strings.HasPrefix(event.Data.CustomID, cmdutil.StickyModalPrefix):
+		if !h.cfg.StickyEnabled {
+			_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+				SetContent("固定メッセージ機能は現在無効化されています。").
+				SetEphemeral(true).
+				Build())
+			return
+		}
+		cmdutil.HandleStickyModal(h.logger, h.SetStickyMessage, event)
+	default:
+		_ = event.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("未対応の入力フォームです").
 			SetEphemeral(true).
 			Build())
 	}

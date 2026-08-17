@@ -65,6 +65,8 @@ func newDisgoClient(cfg config.Config, handlers *ibot.Handlers, logger zerolog.L
 				handlers.OnAutocompleteInteraction(e)
 			case *events.ComponentInteractionCreate:
 				handlers.OnComponentInteraction(e)
+			case *events.ModalSubmitInteractionCreate:
+				handlers.OnModalSubmit(e)
 			case *events.MessageCreate:
 				handlers.OnMessageCreate(e)
 			}

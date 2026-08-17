@@ -52,12 +52,13 @@ type Handlers struct {
 	newsCancel   context.CancelFunc
 	newsClient   bot.Client
 
-	stickyMu        sync.Mutex
-	stickyClient    bot.Client
-	stickyChannels  map[snowflake.ID]struct{}
-	stickyTimers    map[snowflake.ID]*time.Timer
-	stickyReposting map[snowflake.ID]bool
-	stickyDebounce  time.Duration
+	stickyMu          sync.Mutex
+	stickyClient      bot.Client
+	stickyChannels    map[snowflake.ID]struct{}
+	stickyTimers      map[snowflake.ID]*time.Timer
+	stickyReposting   map[snowflake.ID]bool
+	stickyLastRepost  map[snowflake.ID]time.Time
+	stickyMinInterval time.Duration
 
 	rateMu               sync.Mutex
 	lastCommandAt        map[string]time.Time
@@ -124,7 +125,8 @@ func NewHandlers(economy *service.EconomyService, rolePanels *service.RolePanelS
 		stickyChannels:          make(map[snowflake.ID]struct{}),
 		stickyTimers:            make(map[snowflake.ID]*time.Timer),
 		stickyReposting:         make(map[snowflake.ID]bool),
-		stickyDebounce:          stickyDebounceDuration(cfg.StickyDebounceSeconds),
+		stickyLastRepost:        make(map[snowflake.ID]time.Time),
+		stickyMinInterval:       stickyMinIntervalDuration(cfg.StickyDebounceSeconds),
 		lastCommandAt:           make(map[string]time.Time),
 		slashBurstByUser:        make(map[string]userBurstCounter),
 		componentBurstByUser:    make(map[string]userBurstCounter),
@@ -420,6 +422,10 @@ func (h *Handlers) OnApplicationCommandInteraction(event *events.ApplicationComm
 
 func (h *Handlers) OnComponentInteraction(event *events.ComponentInteractionCreate) {
 	h.dispatchComponentInteraction(event)
+}
+
+func (h *Handlers) OnModalSubmit(event *events.ModalSubmitInteractionCreate) {
+	h.dispatchModalSubmit(event)
 }
 
 func (h *Handlers) replyEconomyDisabledSlash(event *events.ApplicationCommandInteractionCreate, suffix string) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	cmdutil "alt-bot/internal/bot/commands/util"
 	"alt-bot/internal/service"
 
 	"github.com/disgoorg/disgo/bot"
@@ -13,16 +14,18 @@ import (
 )
 
 const (
-	defaultStickyDebounce = 5 * time.Second
-	stickyOpTimeout       = 5 * time.Second
+	defaultStickyMinInterval = 3 * time.Second
+	stickyOpTimeout          = 5 * time.Second
 )
 
-// stickyDebounceDuration resolves the configured debounce window, clamped so a
-// misconfigured value cannot turn every message into a repost (which would run
-// straight into Discord's rate limits).
-func stickyDebounceDuration(seconds int) time.Duration {
+// stickyMinIntervalDuration resolves the shortest gap allowed between two
+// reposts in the same channel. It only throttles repeat reposts — the first
+// repost after a quiet channel happens immediately — but it may not be zero,
+// or a busy channel would repost on every message and run straight into
+// Discord's per-channel message rate limit.
+func stickyMinIntervalDuration(seconds int) time.Duration {
 	if seconds <= 0 {
-		return defaultStickyDebounce
+		return defaultStickyMinInterval
 	}
 	if seconds > 300 {
 		return 300 * time.Second
@@ -73,9 +76,14 @@ func (h *Handlers) StopStickyTimers() {
 	}
 }
 
-// OnMessageCreate schedules a sticky repost for the channel the message landed
-// in. Reposting is debounced, so a burst of chatter collapses into a single
-// repost once the channel goes quiet.
+// OnMessageCreate reposts the sticky for the channel the message landed in.
+//
+// The repost runs immediately when the channel has been quiet, so a single
+// message gets an instant response. Within stickyMinInterval of the previous
+// repost it is deferred to the end of that window instead, which keeps a busy
+// channel from reposting on every message and hitting Discord's rate limit.
+// Messages arriving while a repost is already pending need no extra work — the
+// pending one will post the sticky below them.
 func (h *Handlers) OnMessageCreate(event *events.MessageCreate) {
 	if !h.cfg.StickyEnabled {
 		return
@@ -95,12 +103,18 @@ func (h *Handlers) OnMessageCreate(event *events.MessageCreate) {
 	if _, ok := h.stickyChannels[channelID]; !ok {
 		return
 	}
-	if timer, ok := h.stickyTimers[channelID]; ok {
-		timer.Stop()
+	if _, pending := h.stickyTimers[channelID]; pending {
+		return
 	}
-	h.stickyTimers[channelID] = time.AfterFunc(h.stickyDebounce, func() {
-		h.repostSticky(client, channelID)
-	})
+
+	if wait := h.stickyMinInterval - time.Since(h.stickyLastRepost[channelID]); wait > 0 {
+		h.stickyTimers[channelID] = time.AfterFunc(wait, func() {
+			h.repostSticky(client, channelID)
+		})
+		return
+	}
+
+	go h.repostSticky(client, channelID)
 }
 
 // repostSticky deletes the copy currently posted in the channel and posts the
@@ -115,6 +129,10 @@ func (h *Handlers) repostSticky(client bot.Client, channelID snowflake.ID) {
 		return
 	}
 	h.stickyReposting[channelID] = true
+	// Stamped before the work rather than after, so the throttle window is
+	// measured from when a repost started. Otherwise a slow Discord call would
+	// let the next message through immediately.
+	h.stickyLastRepost[channelID] = time.Now()
 	h.stickyMu.Unlock()
 
 	defer func() {
@@ -150,7 +168,7 @@ func (h *Handlers) repostSticky(client bot.Client, channelID snowflake.ID) {
 	}
 
 	posted, err := client.Rest().CreateMessage(channelID, discord.NewMessageCreateBuilder().
-		SetContent(snapshot.Content).
+		SetEmbeds(cmdutil.BuildStickyEmbed(snapshot.Content)).
 		Build())
 	if err != nil {
 		h.logger.Error().Err(err).Str("channel_id", channelID.String()).Msg("failed to post sticky message")
@@ -178,6 +196,7 @@ func (h *Handlers) forgetStickyChannel(channelID snowflake.ID) {
 	h.stickyMu.Lock()
 	defer h.stickyMu.Unlock()
 	delete(h.stickyChannels, channelID)
+	delete(h.stickyLastRepost, channelID)
 	if timer, ok := h.stickyTimers[channelID]; ok {
 		timer.Stop()
 		delete(h.stickyTimers, channelID)
